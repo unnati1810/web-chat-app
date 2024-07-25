@@ -5,6 +5,8 @@ const ChatModel = require("../models/Chat");
 const UserModel = require("../models/User");
 const MessageModel = require("../models/Message");
 
+
+//todo: lambda creation pending
 const deleteChat = asyncHandler(async (req, res) => {
   const { chatId } = req.body;
   // console.log(req.user._id);
@@ -35,6 +37,9 @@ const deleteChat = asyncHandler(async (req, res) => {
   }
 });
 
+
+// todo: to call the getChat APi: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getChats?userId=1517b7d5-f1fe-48da-b6fd-7bc24fd37a42 
+// add email and name of two users in the lambda
 const getChatAccess = asyncHandler(async (req, res) => {
   const { userId } = req.body;
 
@@ -81,6 +86,8 @@ const getChatAccess = asyncHandler(async (req, res) => {
   }
 });
 
+
+// no need 
 const getPrivateChats = asyncHandler(async (req, res) => {
   try {
     ChatModel.find({
@@ -103,6 +110,8 @@ const getPrivateChats = asyncHandler(async (req, res) => {
   }
 });
 
+
+//todo: need to create
 const getStats = (data = []) => {
   //no.of messages,no.of.words,no.of.edited message, deleted message, average message length, unique words, character in longest message
   let result = {};
@@ -184,6 +193,7 @@ const getStats = (data = []) => {
   return result;
 };
 
+//todo:need to create
 const getChatStats = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;

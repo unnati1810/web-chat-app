@@ -56,43 +56,42 @@ function Chat() {
 
   // const [socket, setSocket] = useState(null);
   const chatData = useSelector((state) => state.chat);
-  const friendData = useSelector((state) => state.friends);
+  const [friendData, setFriendData] = useState([]);
   const userData = useSelector((state) => state.user);
   const messageData = useSelector((state) => state.messages);
 
   const [socketConnected, setSocketConnected] = useState(false);
   const [currFriend, setCurrFriend] = useState("");
-  const fetchMessages = async (username = chatData.name, id = chatData.id) => {
-    if (chatData.id == -1) return;
-    try {
-      const config = {
-        headers: {
-          authorization: `Bearer ${userData.token}`,
-        },
-      };
 
-      let { data } = await Axios.post(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/message/${id}`,
-        {},
-        config
-      );
-      console.log(data);
-      ADDUSERMESSAGE(id, data);
-      SETCHAT(username, id);
-      setCurrFriend(getFriendId(id));
-      socket.emit("join chat", id);
-    } catch (err) {
-      console.log(err);
-      toast({
-        title: "Failed to fetch messages!",
-        description: err.response.data.msg,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-        position: "bottom",
-      });
-    }
-  };
+  const fetchMessages = async (username = chatData.name, id = chatData.id) => {
+  if (chatData.id == -1) return;
+  try {
+    const { data } = await Axios.get(
+      `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getMessages?chatId=${id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log(data);
+    ADDUSERMESSAGE(id, data);
+    SETCHAT(username, id);
+    setCurrFriend(getFriendId(id));
+    socket.emit("join chat", id);
+  } catch (err) {
+    console.log(err);
+    toast({
+      title: "Failed to fetch messages!",
+      description: err.response?.data?.msg || "An error occurred",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "bottom",
+    });
+  }
+};
 
   const getFriendId = (id) => {
     console.log("came");
@@ -106,31 +105,38 @@ function Chat() {
   };
 
   const fetchChatList = async (d) => {
-    try {
-      const config = {
-        headers: {
-          authorization: `Bearer ${d.token}`,
-        },
-      };
-      let { data } = await Axios.get(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/chat`,
-        config
-      );
-      SETFRIENDS(data, d.username);
-      // console.log(data);
-    } catch (err) {
-      console.log(err);
-      toast({
-        title: "Failed to fetch chats!",
-        description: err.response.data.msg,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-        position: "bottom",
-      });
-      // console.log(err);
-    }
-  };
+  try {
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+//        authorization: `Bearer ${d.token}`,
+      },
+    };
+    const user = JSON.parse(localStorage.getItem("userInfo"));
+
+   const { data } = await Axios.get(
+           `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getChats?userId=${user.userObject.userId}`,
+           {}, // Sending an empty body as per the given curl request
+           config
+         );
+      setFriendData(data);
+
+    SETFRIENDS(data, d.username);
+    // console.log(data);
+  } catch (err) {
+    console.log(err);
+    toast({
+      title: "Failed to fetch chats!",
+      // description: err.response.data.msg,
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "bottom",
+    });
+    // console.log(err);
+  }
+};
+
 
   useEffect(() => {
     let data = JSON.parse(localStorage.getItem("userInfo"));
@@ -146,20 +152,22 @@ function Chat() {
       sleep(2000);
       window.location.href = "./";
       return;
-    } else if (!data.verified) {
-      toast({
-        title: "Verify email",
-        description: "Verify the email with otp!",
-        status: "warning",
-        duration: 5000,
-        isClosable: true,
-        position: "bottom",
-      });
-      sleep(3000);
-      localStorage.clear();
-      window.location.href = "./";
-      return;
-    } else {
+     } 
+     //else if (!data.verified) {
+    //   toast({
+    //     title: "Verify email",
+    //     description: "Verify the email with otp!",
+    //     status: "warning",
+    //     duration: 5000,
+    //     isClosable: true,
+    //     position: "bottom",
+    //   });
+    //   sleep(3000);
+    //   localStorage.clear();
+    //   window.location.href = "./";
+    //   return;
+    // } 
+    else {
       SETUSER(data);
       fetchChatList(data);
     }
@@ -325,30 +333,34 @@ function Chat() {
             <Flex direction="column" p={4}>
               <SlideDrawer socket={socket} />
             </Flex>
-            <Flex flexDir={"column"} flexGrow="1" gap="2px">
-              {friendData.map((v, i) => {
-                return (
-                  <Box
-                    key={i}
-                    onClick={() => {
-                      socket.emit("join chat", v.chatId);
-                      fetchMessages(v.username, v.chatId);
-                      SETCHAT(v.username, v.chatId);
-                      selectedChat = {
-                        name: v.username,
-                        id: v.chatId,
-                      };
-                    }}
-                  >
-                    <FriendCard
-                      name={v.username}
-                      id={v.chatId}
-                      select={chatData.id}
-                    />
-                  </Box>
-                );
-              })}
-            </Flex>
+             <Flex flexDir={"column"} flexGrow="1" gap="2px">
+                    {friendData.map((v, i) => {
+                      return (
+                        <Box
+                          key={i}
+                          onClick={() => {
+                            socket.emit("join chat", v.chatId);
+                            fetchMessages(v.username, v.chatId);
+                            SETCHAT(v.username, v.chatId);
+//                            setChatData({
+//                              name: v.username,
+//                              id: v.chatId,
+//                            });
+                             selectedChat = {
+                                                    name: v.username,
+                                                    id: v.chatId,
+                                                  };
+                          }}
+                        >
+                          <FriendCard
+                            name={v.users[0]}
+                            id={v.chatId}
+                            select={chatData.id}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Flex>
           </Flex>
         </Flex>
       </Box>
@@ -394,16 +406,16 @@ function Chat() {
                       return (
                         <Box key={i}>
                           <MessageCard
-                            socket={socket}
-                            num={i}
-                            isDeleted={v.isDeleted}
-                            message={v.content}
-                            name={v.sender.username}
-                            id={v._id}
-                            updated={v.updatedAt}
-                            time={v.createdAt}
-                            isUser={v.sender._id === userData._id}
-                          />
+                                     socket={socket}
+                                     num={i}
+                                     isDeleted={false} // Assuming you don't have `isDeleted` in your current data
+                                     message={v.messageText}
+                                     name={v.userId === userData.userObject.userId ? "You" : "Other User"} // Adjust this as needed
+                                     id={v.messageId}
+                                     updated={v.sentAt}
+                                     time={v.sentAt}
+                                     isUser={v.userId === userData.userObject.userId}
+                                   />
                         </Box>
                       );
                     })

@@ -5,6 +5,8 @@ const UserModel = require("../models/User");
 const ChatModel = require("../models/Chat");
 // const chats = require("../data/data");
 
+
+//todo: call EditMessage : https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/editMessage
 const editMessage = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
@@ -28,6 +30,7 @@ const editMessage = asyncHandler(async (req, res) => {
   }
 });
 
+//todo: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/deleteMessage?messageId=792d62d8-06d1-4d4f-8d43-b88e727dbde4
 const deleteMessage=asyncHandler(async(req,res)=>{
   const { id } = req.params;
 
@@ -47,6 +50,8 @@ const deleteMessage=asyncHandler(async(req,res)=>{
   }
 })
 
+
+//todo: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/send-message
 const messageSender = asyncHandler(async (req, res) => {
   const { content, chatId } = req.body;
 
@@ -82,6 +87,8 @@ const messageSender = asyncHandler(async (req, res) => {
   }
 });
 
+
+//todo: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getMessages?chatId=47fec2e0-70a2-440e-ba40-f3680cebab65
 const getAllMessages = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;

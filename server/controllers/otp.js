@@ -5,6 +5,7 @@ const TokenModel = require("../models/Token");
 const generateJWToken = require("../config/webtoken");
 const sendEmail = require("../utils/sendEmail");
 
+//todo: need to create lambda using cognito
 const sendOTP = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
@@ -29,6 +30,8 @@ const sendOTP = asyncHandler(async (req, res) => {
   }
 });
 
+
+//todo: need to create lambda using cognito
 const verifyOTP = asyncHandler(async (req, res) => {
   try {
     const { id, token } = req.params;

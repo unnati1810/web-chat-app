@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-
 import { AddIcon } from "@chakra-ui/icons";
 import ChatLoader from "../animation/ChatLoader";
 import {
@@ -31,8 +30,7 @@ function SideDrawer(props) {
   const [search, setSearch] = useState("");
   const [result, setResult] = useState([]);
   const [user, setUser] = useState("");
-  const [loading, setloading] = useState(false);
-  const [loadingUser, setLoadingUser] = useState(false);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
   const ref = useRef(null);
 
@@ -43,7 +41,7 @@ function SideDrawer(props) {
   }, []);
 
   const fetchUsers = async () => {
-    if (search === "" || !search) {
+    if (search.trim() === "") {
       toast({
         title: "Please type username to search",
         status: "warning",
@@ -56,30 +54,39 @@ function SideDrawer(props) {
     }
 
     try {
-      setloading(true);
-      // console.log(user.token);
-      const config = {
-        headers: {
-          authorization: `Bearer ${user.token}`,
-        },
-      };
-      const { data } = await Axios.get(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/user?search=${search}`,
-        config
-      );
+      setLoading(true);
 
-      setResult(
-        data.filter(
-          (d) => !friendsData.map((k) => k.username).includes(d.username)
-        )
-      );
-      setloading(false);
+      // Construct the API endpoint URL with the email query parameter
+      const apiUrl = `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getusers?email=${search}`;
+
+      // Send the GET request to the updated API endpoint
+      const response = await Axios.get(apiUrl);
+      const data = response.data;
+
+      console.log("API Response:", data); // Log the API response for debugging
+
+      // Check if the response is a user object
+      if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        throw new Error("Expected a user object but received something else.");
+      }
+
+      // Check if the user is already in the friends list
+      const isFriend = friendsData.some((friend) => friend.username === data.userName);
+
+      // Only set the result if the user is not already a friend
+      if (!isFriend) {
+        setResult([data]);
+      } else {
+        setResult([]);
+      }
+
+      setLoading(false);
     } catch (err) {
-      setloading(false);
-      console.log(err);
+      setLoading(false);
+      console.error("Error fetching user data:", err);
       toast({
-        title: "Error Occured!",
-        description: "Failed to search result",
+        title: "Error Occurred!",
+        description: "Failed to fetch users",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -121,13 +128,12 @@ function SideDrawer(props) {
               flexDirection={"row"}
               pb={2}
               zIndex={"1"}
-              // width={"95%"}
             >
               <Input
                 placeholder="Search by name or email"
                 ref={ref}
                 w={"75%"}
-                defaultValue={search}
+                value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <Button ml={"2"} colorScheme={"green"} onClick={fetchUsers}>
@@ -138,19 +144,17 @@ function SideDrawer(props) {
               {loading ? (
                 <ChatLoader />
               ) : (
-                result.map((v, i) => {
-                  return (
-                    <Box key={i}>
-                      {" "}
-                      <UserCard
-                        socket={props.socket}
-                        data={v}
-                        gmail={v.gmail}
-                        username={v.username}
-                      />
-                    </Box>
-                  );
-                })
+                result.map((v, i) => (
+                  <Box key={i}>
+                    <UserCard
+                      socket={props.socket}
+                      userId={v.userId}
+                    //  userId={v.userId}
+                      gmail={v.email} // Adjusted to match the API response field
+                      username={v.userName} // Adjusted to match the API response field
+                    />
+                  </Box>
+                ))
               )}
             </Stack>
           </DrawerBody>

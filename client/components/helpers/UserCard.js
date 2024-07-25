@@ -11,47 +11,54 @@ import {
 import { useDispatch } from "react-redux";
 import { actionCreators } from "../../hooks";
 import Axios from "axios";
-function UserCard({ gmail, username, data: user_Data, socket }) {
+function UserCard({ gmail, username, userId, socket }) {
+  console.log("Unnati",userId);
   const toast = useToast();
   const dispatch = useDispatch();
   const { colorMode, toggleColorMode } = useColorMode();
   const { ADDFRIEND } = bindActionCreators(actionCreators, dispatch);
 
-  const getFriendId = async (data, user) => {
-    for (let i = 0; i < data.users.length; i++) {
-      if (data.users[i]["_id"] !== user._id) return data.users[i]["_id"];
-    }
-    return "";
-  };
+  // const getFriendId = async (data, user) => {
+   
+  //   for (let i = 0; i < data.users.length; i++) {
+  //     if (data.users[i]["_id"] !== user._id) return data.users[i]["_id"];
+  //   }
+    
+  //   return "";
+  // };
+
 
   const addFriend = async () => {
+
     const user = JSON.parse(localStorage.getItem("userInfo"));
     try {
-      const config = {
-        headers: {
-          authorization: `Bearer ${user.token}`,
-        },
-      };
+      // const config = {
+      //   headers: {
+      //     authorization: `Bearer ${user.token}`,
+      //   },
+      // };
+
+
       const { data } = await Axios.post(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/chat`,
-        { userId: user_Data._id },
-        config
+        "https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/create-chat",
+        { userId1: user.userObject.userId , userId2: userId, chatName:username },
+        //config
       );
       async function sleep(milliseconds) {
         return await new Promise((resolve) =>
           setTimeout(resolve, milliseconds)
         );
       }
-      let friendId = await getFriendId(data, user);
-      let tempData = {
-        id: user["_id"],
-        chatId: data["_id"],
-        gmail: user["gmail"],
-        username: user["username"],
-        image: user["image"],
-        passId: friendId,
-      };
-      socket.emit("add chat", tempData);
+      // let friendId = await getFriendId(data, user);
+      // let tempData = {
+      //   id: user["_id"],
+      //   chatId: data["_id"],
+      //   gmail: user["gmail"],
+      //   username: user["username"],
+      //   image: user["image"],
+      //   passId: friendId,
+      // };
+      // socket.emit("add chat", tempData);
 
       toast({
         title: "User added!",
@@ -62,7 +69,7 @@ function UserCard({ gmail, username, data: user_Data, socket }) {
         position: "bottom",
       });
       await sleep(500);
-      ADDFRIEND(user_Data);
+      //ADDFRIEND(user_Data);
       window.location.href = "/chat";
     } catch (err) {
       toast({
@@ -77,6 +84,7 @@ function UserCard({ gmail, username, data: user_Data, socket }) {
     }
   };
   return (
+
     <Container
       key={gmail}
       display={"flex"}
@@ -108,3 +116,8 @@ function UserCard({ gmail, username, data: user_Data, socket }) {
 }
 
 export default UserCard;
+
+
+
+
+//{"message":"User logged in successfully.","userObject":{"snsTopicArn":"arn:aws:sns:us-east-1:373971603424:user-04a854e8-70f1-7092-d7b5-8fd40100632a-notifications","password":"Unn@ti1810","profilePicture":"https://profile-picture-bucket-term-project.s3.amazonaws.com/profile-pictures/04a854e8-70f1-7092-d7b5-8fd40100632a.png","userId":"04a854e8-70f1-7092-d7b5-8fd40100632a","updatedAt":"2024-07-25T05:15:26.912Z","userName":"Unnati","createdAt":"2024-07-25T05:15:26.912Z","email":"unnatikapadia97@gmail.com"}}

@@ -30,7 +30,7 @@ app.use("/otp", OTPRoutes);
 app.use(errorHandler);
 app.use(NotFound);
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5003;
 
 const start = async () => {
   try {
@@ -60,7 +60,7 @@ io.on("connection", (socket) => {
   console.log("connected to socket.io");
 
   socket.on("setup", (userData) => {
-    console.log("user setup room:" + userData._id);
+   // console.log("user setup room:" + userData._id);
     socket.join(userData._id);
     // console.log(userData._id);
     socket.emit("connected");

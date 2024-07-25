@@ -3,6 +3,8 @@ const { CustomError } = require("../error/custom");
 const UserModel = require("../models/User");
 const generateJWToken = require("../config/webtoken");
 
+
+//todo: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getusers?email=john.doe@example.com
 const getAllUsers = asyncHandler(async (req, res) => {
   const keyword = req.query.search
     ? {
@@ -20,6 +22,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
   res.send(AllUsers);
 });
 
+
+//todo: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/create-user
+// need to add cognito code and do not remove the profile picture uplaod and other fields
 const registerUser = asyncHandler(async (req, res) => {
   const { username, gmail, password } = req.body;
   if (!username || !gmail || !password) {
@@ -53,6 +58,9 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
+
+//todo: https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/login
+// need to add cognito code
 const loginUser = asyncHandler(async (req, res) => {
   const { gmail, password } = req.body;
   if (!gmail || !password) {

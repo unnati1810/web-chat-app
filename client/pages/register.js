@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Flex,
   Heading,
@@ -19,11 +19,10 @@ import {
 } from "@chakra-ui/react";
 import { FaRegUser } from "react-icons/fa";
 import { EmailIcon, ViewIcon, ViewOffIcon, LockIcon } from "@chakra-ui/icons";
-import HeaderMeta from "../components/meta/HeaderMeta";
 import { NextSeo } from "next-seo";
 import Axios from "axios";
-import { useEffect } from "react";
 import ColorChange from "../layout/ColorChange";
+
 const Register = () => {
   const color = useColorModeValue("#000", "#fff");
   const bg = useColorModeValue("gray.200", "#2e2b2b");
@@ -33,9 +32,11 @@ const Register = () => {
   const [cpass, setcPass] = useState("");
   const [email, setEmail] = useState("");
   const [user, setUser] = useState("");
+  const [profilePicture, setProfilePicture] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const handleShowClick = () => setShowPassword(!showPassword);
   const handleShowCClick = () => setShowCPassword(!showCPassword);
 
@@ -46,11 +47,21 @@ const Register = () => {
     }
   }, []);
 
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfilePicture(reader.result.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const registerUser = async (e) => {
     e.preventDefault();
     if (pass !== cpass) {
       toast({
-        title: `Password and Confirm password are not equal`,
+        title: "Passwords do not match",
+        description: "Please ensure that both passwords are the same.",
         status: "error",
         isClosable: true,
       });
@@ -62,19 +73,21 @@ const Register = () => {
             "Content-type": "application/json",
           },
         };
+
         const { data } = await Axios.post(
-          `${process.env.NEXT_PUBLIC_BACKENDURL}/user`,
+          "https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/create-user",
           {
-            username: user,
-            gmail: email,
+            userName: user,
+            email,
             password: pass,
+            profilePicture,
           },
           config
         );
-        console.log(data);
+
         toast({
           title: "Account created successfully",
-          description: "Please verify your account to login",
+          description: "Please verify your account to log in.",
           status: "success",
           duration: 4000,
           isClosable: true,
@@ -84,12 +97,10 @@ const Register = () => {
         setLoading(false);
         window.location.href = "./otp";
       } catch (err) {
-        console.log(err);
         setLoading(false);
-        // e.preventDefault();
         toast({
-          title: "Error Occured!",
-          description: err.message,
+          title: "Error Occurred!",
+          description: err.response?.data?.message || err.message,
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -101,9 +112,8 @@ const Register = () => {
 
   return (
     <ColorChange>
-      {" "}
       <NextSeo
-        description={"Register to create the account in Web Chat App"}
+        description={"Register to create an account in Web Chat App"}
         title={"WebChatApp - Register"}
       />
       <Flex
@@ -115,10 +125,6 @@ const Register = () => {
         justifyContent="center"
         alignItems="center"
       >
-        {/* <HeaderMeta
-          content={"Register to create the account in Web Chat App"}
-          title={"Register to Web Chat App"}
-        /> */}
         <Stack
           flexDir="column"
           mb="2"
@@ -147,7 +153,7 @@ const Register = () => {
                     <Input
                       onChange={(e) => setEmail(e.target.value)}
                       type="email"
-                      placeholder="email address"
+                      placeholder="Email address"
                       required
                     />
                   </InputGroup>
@@ -214,7 +220,15 @@ const Register = () => {
                     </InputRightElement>
                   </InputGroup>
                 </FormControl>
-
+                <FormControl>
+                  <InputGroup>
+                    <Input
+                      type="file"
+                      onChange={handleProfilePictureChange}
+                      accept="image/*"
+                    />
+                  </InputGroup>
+                </FormControl>
                 <Button
                   borderRadius={0}
                   type="submit"

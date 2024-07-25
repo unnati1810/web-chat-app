@@ -36,7 +36,7 @@ const Home = () => {
 
   useEffect(() => {
     let data = JSON.parse(localStorage.getItem("userInfo"));
-    if (data && data.verified) {
+    if (data) {
       window.location.href = "./chat";
     }
   }, []);
@@ -54,18 +54,15 @@ const Home = () => {
     };
     try {
       const { data } = await Axios.post(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/user/login`,
+        "https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/login",
         {
-          gmail: email,
+          email: email,
           password: pass,
         },
         config
       );
       localStorage.setItem("userInfo", JSON.stringify(data));
-      if (!data.verified) {
-        window.location.href = "./otp";
-        return;
-      }
+      
       toast({
         title: "Logged in Successfully!",
         status: "success",

@@ -30,48 +30,59 @@ function MessageBox({ socket }) {
       handleMessage();
     }
   };
+
   const handleMessage = async () => {
     const userData = JSON.parse(localStorage.getItem("userInfo"));
     const config = {
       headers: {
-        authorization: `Bearer ${userData.token}`,
+        'Content-Type': 'application/json',
       },
     };
+
     try {
       const { name, id } = chatData;
-      setSearch("");
-      const { data } = await Axios.post(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/message`,
-        {
-          content: search,
-          chatId: chatData.id,
-        },
+      const payload = {
+        chatId: chatData.id,
+        userId: userData.userObject.userId,
+        messageText: search,
+      };
+
+      await Axios.post(
+        `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/send-message`,
+        payload,
         config
       );
+
+      const newMessage = {
+        chatId: chatData.id,
+        userId: userData.userObject.userId,
+        messageText: search,
+        sentAt: new Date().toISOString(),
+        messageId: Math.random().toString(36).substr(2, 9), // Generate a temporary ID
+      };
+
       dispatch({
         type: "ADD_MESSAGE",
-        message: data,
+        message: newMessage,
         id: chatData.id,
       });
-      // ADDMESSAGE(data, chatData.id);
-      socket.emit("new message", data);
-      // console.log(data);
+      socket.emit("new message", newMessage);
       SETCHAT(name, id);
-      // console.log(data);
+      setSearch(""); // Clear the input field after sending the message
     } catch (err) {
       console.log(err);
       toast({
         title: "Failed to send message!",
-        description: err.response.data.msg,
+        description: err.response?.data?.msg || "An error occurred",
         status: "error",
         duration: 5000,
         isClosable: true,
         position: "bottom",
       });
     }
-
-    // socket.emit("check");
   };
+
+
   return (
     <Flex flexGrow={"1"} color={bg}>
       <InputGroup mx={"5"}>

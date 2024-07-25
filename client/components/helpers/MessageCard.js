@@ -42,78 +42,103 @@ export default function (props) {
   const [editing, setEditing] = useState(false);
   const [isDeleted, setisDeleted] = useState(props.isDeleted);
 
-  const handleDelete = async () => {
-    try {
-      const config = {
-        headers: {
-          authorization: `Bearer ${userData.token}`,
-        },
-      };
-      const { data } = await Axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/message/${props.id}`,
+    const handleDelete = async () => {
+  try {
+    const config = {
+      headers: {
+        authorization: `Bearer ${userData.token}`,
+      },
+    };
 
-        config
-      );
-      if (data) {
-        setisDeleted(true);
-        DELETEMESSAGE(chatData.id, props.num);
-        let temp = data;
-        temp["num"] = props.num;
-        props.socket.emit("delete message", temp);
-        toast({
-          title: "Message deleted!",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-          position: "bottom",
-        });
-      } else {
-        toast({
-          title: "Failed to delete message!",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "bottom",
-        });
-      }
-    } catch (err) {
-      console.log(err);
+    // Extract the messageId from props.id
+    const { id: messageId } = props;
+
+    // Make a POST request to the delete endpoint with messageId as a query parameter
+    const { data } = await Axios.post(
+      `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/deleteMessage?messageId=${messageId}`,
+      {},
+      config
+    );
+
+    if (data.message === "Message deleted successfully") {
+      setisDeleted(true);
+      DELETEMESSAGE(chatData.id, props.num);
+
+      // Prepare the message object to emit
+      let temp = {
+        messageId,
+        num: props.num
+      };
+
+      props.socket.emit("delete message", temp);
+
+      toast({
+        title: "Message deleted!",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+    } else {
       toast({
         title: "Failed to delete message!",
-        description: err.response.data.msg,
         status: "error",
         duration: 5000,
         isClosable: true,
         position: "bottom",
       });
     }
-  };
+  } catch (err) {
+    console.log(err);
+    toast({
+      title: "Failed to delete message!",
+      description: err.response?.data?.msg || "An error occurred",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "bottom",
+    });
+  }
+};
 
-  const handleEdit = async (e) => {
-    setEditing(false);
-    // setText(e.target.value);
-    if (text == props.message) {
-      return;
-    }
-    try {
-      const config = {
-        headers: {
-          authorization: `Bearer ${userData.token}`,
-        },
+    const handleEdit = async (e) => {
+  setEditing(false);
+  const newText = e.target.value;
+
+  // Check if the text has changed
+  if (newText === props.message) {
+    return;
+  }
+
+  try {
+    const config = {
+      headers: {
+        authorization: `Bearer ${userData.token}`,
+      },
+    };
+
+    // Make a POST request to the edit endpoint
+    const { data } = await Axios.post(
+      'https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/editMessage',
+      {
+        messageId: props.id,
+        newMessageText: newText,
+      },
+      config
+    );
+
+    // Update local state and notify via socket
+    if (data.message === "Message updated successfully") {
+      setUpdated(data.updatedAt);
+      EDITMESSAGE({ ...props.message, content: newText }, chatData.id, props.num);
+
+      let temp = {
+        messageId: props.id,
+        content: newText,
+        num: props.num
       };
-      const { data: message } = await Axios.put(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/message/${props.id}`,
-        {
-          content: text,
-        },
-        config
-      );
-      // console.log(message);
-      setUpdated(message.updatedAt);
-      EDITMESSAGE(message, chatData.id, props.num);
-      let temp = message;
-      temp["num"] = props.num;
       props.socket.emit("edit message", temp);
+
       toast({
         title: "Message updated!",
         status: "success",
@@ -121,20 +146,28 @@ export default function (props) {
         isClosable: true,
         position: "bottom",
       });
-    } catch (err) {
-      console.log(err);
+    } else {
       toast({
-        title: "Failed to edit message!",
-        description: err.response.data.msg,
+        title: "Failed to update message!",
         status: "error",
         duration: 5000,
         isClosable: true,
         position: "bottom",
       });
     }
-    // let message = messageData[chatData.id][props.num];
-    // message["content"] = e.target.value;
-  };
+  } catch (err) {
+    console.log(err);
+    toast({
+      title: "Failed to edit message!",
+      description: err.response?.data?.msg || "An error occurred",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "bottom",
+    });
+  }
+};
+
   return (
     <Fragment>
       {isDeleted == true ? (
