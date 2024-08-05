@@ -46,7 +46,7 @@ Resources:
             VpcId: !Ref WebChatVPC
             CidrBlock: "10.0.0.0/20"
             AvailabilityZone: !Ref AvailabilityZoneEast1A
-            MapPublicIpOnLaunch: false
+            MapPublicIpOnLaunch: true
             Tags: 
               - 
                 Key: "Name"
@@ -123,26 +123,19 @@ Resources:
                 Value: !Sub "vpc-rtb-private1-${AvailabilityZoneEast1A}-${Stage}"
 
 
-    EC2Route:
-      Type: "AWS::EC2::Route"
-      Properties:
-        DestinationCidrBlock: "0.0.0.0/0"
-        NatGatewayId: !Ref EC2NatGateway
-        RouteTableId: !Ref EC2RouteTable
-
-#    EC2Route2:
-#      Type: "AWS::EC2::Route"
-#      Properties:
-#        DestinationCidrBlock: "0.0.0.0/0"
-#        GatewayId: !Ref EC2VPCEndpoint2
-#        RouteTableId: !Ref EC2RouteTable
-#
-#    EC2Route3:
-#      Type: "AWS::EC2::Route"
-#      Properties:
-#        DestinationCidrBlock: "0.0.0.0/0"
-#        GatewayId: !Ref EC2VPCEndpoint
-#        RouteTableId: !Ref EC2RouteTable
+  #    EC2Route2:
+  #      Type: "AWS::EC2::Route"
+  #      Properties:
+  #        DestinationCidrBlock: "0.0.0.0/0"
+  #        GatewayId: !Ref EC2VPCEndpoint2
+  #        RouteTableId: !Ref EC2RouteTable
+  #
+  #    EC2Route3:
+  #      Type: "AWS::EC2::Route"
+  #      Properties:
+  #        DestinationCidrBlock: "0.0.0.0/0"
+  #        GatewayId: !Ref EC2VPCEndpoint
+  #        RouteTableId: !Ref EC2RouteTable
 
     EC2Route4:
       Type: "AWS::EC2::Route"
@@ -175,12 +168,11 @@ Resources:
         RouteTableId: !Ref EC2RouteTable3
         SubnetId: !Ref EC2PrivateSubnet1
 
-
-
     EC2EIP:
       Type: "AWS::EC2::EIP"
       Properties:
         Domain: "vpc"
+
 
     EC2NatGateway:
       Type: "AWS::EC2::NatGateway"
@@ -192,16 +184,20 @@ Resources:
             Value: !Sub "nat-gateway-${Stage}"
         AllocationId: !GetAtt EC2EIP.AllocationId
 
-    EC2EIPAssociation:
-      Type: "AWS::EC2::EIPAssociation"
-      Properties:
-        AllocationId: !GetAtt EC2EIP.AllocationId
-        NetworkInterfaceId:  !Ref EC2NetworkInterface7
 
-    EC2NetworkInterface7:
-      Type: "AWS::EC2::NetworkInterface"
+    EC2Route:
+      Type: "AWS::EC2::Route"
       Properties:
-        SubnetId: !Ref EC2PublicSubnet1
+        DestinationCidrBlock: "0.0.0.0/0"
+        NatGatewayId: !Ref EC2NatGateway
+        RouteTableId: !Ref EC2RouteTable
+#
+#
+#  EC2EIPAssociation:
+#    Type: "AWS::EC2::EIPAssociation"
+#    Properties:
+#      AllocationId: !GetAtt EC2EIP.AllocationId
+#      NetworkInterfaceId:  !Ref EC2NetworkInterface7
 
 
     EC2VPCEndpoint:
@@ -231,39 +227,132 @@ Resources:
         PrivateDnsEnabled: false
 
 
-    EC2Instance:
-        Type: "AWS::EC2::Instance"
-        Properties:
-            ImageId: "ami-0ba9883b710b05ac6"
-            InstanceType: "t2.small"
-            KeyName: "web-chat-app2"
-            AvailabilityZone: !Ref AvailabilityZoneEast1A
-            SubnetId: !Ref EC2PrivateSubnet1
-            SecurityGroupIds:
-              - !Ref EC2SecurityGroup
-            Tags:
-              -
-                Key: "Name"
-                Value: !Sub "ec2-web-chat-${Stage}"
-            HibernationOptions:
-              Configured: false
-            EnclaveOptions:
-              Enabled: false
-            PlacementGroupName: !Ref EC2PlacementGroup
-            Tenancy: "default"
-            EbsOptimized: false
-            SourceDestCheck: true
-            BlockDeviceMappings: 
-              - 
-                DeviceName: "/dev/xvda"
-                Ebs: 
-                    Encrypted: false
-                    VolumeSize: 8
-                    SnapshotId: "snap-046c3015dc5bd6fe7"
-                    VolumeType: "gp3"
-                    DeleteOnTermination: true
-            IamInstanceProfile: "web-chat-app-ec2"
+#    EC2Instance:
+#        Type: "AWS::EC2::Instance"
+#        Properties:
+#            ImageId: "ami-0ba9883b710b05ac6"
+#            InstanceType: "t2.small"
+#            KeyName: "web-chat-app2"
+#            AvailabilityZone: !Ref AvailabilityZoneEast1A
+#            SubnetId: !Ref EC2PublicSubnet1
+#            SecurityGroupIds:
+#              - !Ref EC2SecurityGroup
+#            Tags:
+#              -
+#                Key: "Name"
+#                Value: !Sub "ec2-web-chat-${Stage}"
+#            HibernationOptions:
+#              Configured: false
+#            EnclaveOptions:
+#              Enabled: false
+#            PlacementGroupName: !Ref EC2PlacementGroup
+#            Tenancy: "default"
+#            EbsOptimized: false
+#            SourceDestCheck: true
+#            BlockDeviceMappings:
+#              -
+#                DeviceName: "/dev/xvda"
+#                Ebs:
+#                    Encrypted: false
+#                    VolumeSize: 8
+#                    SnapshotId: "snap-046c3015dc5bd6fe7"
+#                    VolumeType: "gp3"
+#                    DeleteOnTermination: true
+#            IamInstanceProfile: "web-chat-app-ec2"
 
+
+  # EC2 Instance
+    EC2Instance:
+      Type: "AWS::EC2::Instance"
+      Properties:
+        ImageId: "ami-0ba9883b710b05ac6" # ubuntu server
+        InstanceType: "t2.small"
+        KeyName: "web-chat-app2"
+        AvailabilityZone: !Ref AvailabilityZoneEast1A
+        Tenancy: "default"
+        SubnetId: !Ref EC2PublicSubnet1
+        EbsOptimized: false
+        SecurityGroupIds:
+          - !Ref EC2SecurityGroup
+        SourceDestCheck: true
+        BlockDeviceMappings:
+          - DeviceName: "/dev/xvda"
+            Ebs:
+              Encrypted: false
+              VolumeSize: 8
+              SnapshotId: "snap-046c3015dc5bd6fe7"
+              VolumeType: "gp3"
+              DeleteOnTermination: true
+        Tags:
+          - Key: "Name"
+            Value: !Sub "ec2-web-chat-${Stage}"
+        HibernationOptions:
+          Configured: false
+        EnclaveOptions:
+          Enabled: false
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            sudo dnf update -y
+            sudo dnf install -y git
+            sudo dnf install -y nodejs npm
+            sudo npm install -g npm@latest
+            sudo dnf install -y nginx
+            sudo mkdir -p /usr/share/nginx/html/my-react-app
+            echo 'server {
+              listen 80;
+              listen [::]:80;
+              root /usr/share/nginx/html/my-react-app/build;
+            
+              location / {
+              try_files $uri /index.html;
+            }
+            }' | sudo tee /etc/nginx/conf.d/react.conf >/dev/null
+            cd /home/ec2-user
+            mkdir my-app
+            cd my-app
+            sudo git clone https://github.com/unnati1810/web-chat-app.git
+            cd web-chat-app/client
+            sudo npm install
+            sudo npm run build
+            sudo cp -R build/ /usr/share/nginx/html/my-react-app/
+
+            cd /home/ubuntu
+            mkdir my-app
+            cd my-app
+            sudo git clone https://github.com/unnati1810/web-chat-app.git
+            cd web-chat-app
+            cd client
+            sudo npm install
+            sudo npm run build
+            sudo npm run export
+            sudo mkdir -p /usr/share/nginx/html/my-react-app
+            sudo cp -R out/* /usr/share/nginx/html/my-react-app/
+            sudo cp -R .next /usr/share/nginx/html/my-react-app/
+            sudo cp -R public /usr/share/nginx/html/my-react-app/
+            sudo tee /etc/nginx/conf.d/nextjs.conf <<EOF
+              server {
+              listen 80;
+              listen [::]:80;
+            
+              root /usr/share/nginx/html/my-react-app;
+              index index.html;
+            
+              location / {
+              try_files \$uri /index.html;
+              }
+            }
+            EOF
+            sudo nginx -t && sudo systemctl reload nginx
+
+
+    EC2NetworkInterface2:
+      Type: "AWS::EC2::NetworkInterface"
+      Properties:
+        SubnetId: !Ref EC2PublicSubnet1
+        SourceDestCheck: true
+        GroupSet:
+          - !Ref EC2SecurityGroup2
 
 #    EC2Instance2:
 #        Type: "AWS::EC2::Instance"
