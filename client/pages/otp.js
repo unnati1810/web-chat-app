@@ -7,7 +7,7 @@ import {
   InputGroup,
   InputLeftElement,
   Box,
-  Link,
+  Link as ChakraLink,
   Avatar,
   FormControl,
   FormHelperText,
@@ -19,6 +19,7 @@ import ColorChange from "../layout/ColorChange";
 import { NextSeo } from "next-seo";
 import Axios from "axios";
 import React, { useState, useEffect } from "react";
+import { Link, useNavigate  } from 'react-router-dom';
 
 const OTP = () => {
   const [userData, setUserData] = useState({});
@@ -29,11 +30,12 @@ const OTP = () => {
   const bg = useColorModeValue("gray.200", "#2e2b2b");
   const profileColor = useColorModeValue("whiteAlpha.900", "#292626");
   const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let data = JSON.parse(localStorage.getItem("userInfo"));
     if (data == null || Object.keys(data).length === 0) {
-      window.location.href = "./";
+    navigate('/');
     } else {
       setUserData(data);
       setEmail(data.userObject.email); // Set email from localStorage
@@ -89,7 +91,8 @@ const OTP = () => {
           isClosable: true,
           position: "bottom",
         });
-        window.location.href = "./";
+            navigate('/');
+
       } else {
         throw new Error(data.body.message || "Verification failed.");
       }
@@ -202,9 +205,9 @@ const OTP = () => {
         </Stack>
         <Box>
           Verified already?{" "}
-          <Link color="teal.500" href="/">
+          <ChakraLink color="teal.500"  as={Link} href="/">
             Sign in
-          </Link>
+          </ChakraLink>
         </Box>
       </Flex>
     </ColorChange>

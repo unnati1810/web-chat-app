@@ -29,6 +29,7 @@ import HeaderMeta from "../components/meta/HeaderMeta";
 import { io } from "socket.io-client";
 import ScrollableFeed from "react-scrollable-feed";
 import ChatLoader from "../components/animation/ChatLoader";
+import { useNavigate } from 'react-router-dom';
 
 const ENDPOINT = `${process.env.NEXT_PUBLIC_BACKENDURL}`;
 var socket, selectedChatCompare;
@@ -53,7 +54,12 @@ function Chat() {
     ADDFRIEND,
     DELETEMESSAGE,
   } = bindActionCreators(actionCreators, dispatch);
+  const navigate = useNavigate();
 
+
+ const handleRedirect = () => {
+    navigate('/');
+  };
   // const [socket, setSocket] = useState(null);
   const chatData = useSelector((state) => state.chat);
   const [friendData, setFriendData] = useState([]);
@@ -62,6 +68,8 @@ function Chat() {
 
   const [socketConnected, setSocketConnected] = useState(false);
   const [currFriend, setCurrFriend] = useState("");
+
+
 
   const fetchMessages = async (username = chatData.name, id = chatData.id) => {
   if (chatData.id == -1) return;
@@ -150,7 +158,7 @@ function Chat() {
         position: "bottom",
       });
       sleep(2000);
-      window.location.href = "./";
+      handleRedirect();
       return;
      } 
      //else if (!data.verified) {
@@ -267,7 +275,7 @@ function Chat() {
       position: "bottom",
     });
     await sleep(2500);
-    window.location.href = "./";
+      handleRedirect();
   };
 
   return (

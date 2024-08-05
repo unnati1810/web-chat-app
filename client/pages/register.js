@@ -9,7 +9,7 @@ import {
   InputLeftElement,
   IconButton,
   Box,
-  Link,
+  Link as ChakraLink,
   Avatar,
   FormControl,
   InputRightElement,
@@ -22,6 +22,7 @@ import { EmailIcon, ViewIcon, ViewOffIcon, LockIcon } from "@chakra-ui/icons";
 import { NextSeo } from "next-seo";
 import Axios from "axios";
 import ColorChange from "../layout/ColorChange";
+import { Link, useNavigate  } from 'react-router-dom';
 
 const Register = () => {
   const color = useColorModeValue("#000", "#fff");
@@ -36,6 +37,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleShowClick = () => setShowPassword(!showPassword);
   const handleShowCClick = () => setShowCPassword(!showCPassword);
@@ -43,7 +45,8 @@ const Register = () => {
   useEffect(() => {
     let data = JSON.parse(localStorage.getItem("userInfo"));
     if (data) {
-      window.location.href = "./chat";
+          navigate('/chat');
+
     }
   }, []);
 
@@ -95,7 +98,8 @@ const Register = () => {
         });
         localStorage.setItem("userInfo", JSON.stringify(data));
         setLoading(false);
-        window.location.href = "./otp";
+                  navigate('/otp');
+
       } catch (err) {
         setLoading(false);
         toast({
@@ -245,9 +249,9 @@ const Register = () => {
         </Stack>
         <Box>
           Already have an account?{" "}
-          <Link color="teal.500" href="/">
+          <ChakraLink color="teal.500" as={Link} href="/">
             Sign In
-          </Link>
+          </ChakraLink>
         </Box>
       </Flex>
     </ColorChange>

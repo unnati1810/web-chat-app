@@ -9,7 +9,7 @@ import {
   InputLeftElement,
   IconButton,
   Box,
-  Link,
+  Link as ChakraLink,
   Avatar,
   FormControl,
   FormHelperText,
@@ -23,6 +23,9 @@ import { useEffect } from "react";
 import { EmailIcon, ViewIcon, ViewOffIcon, LockIcon } from "@chakra-ui/icons";
 import Axios from "axios";
 import { NextSeo } from "next-seo";
+import { Link , useNavigate } from 'react-router-dom';
+
+
 const Home = () => {
   const color = useColorModeValue("#000", "#fff");
   const bg = useColorModeValue("gray.200", "#2e2b2b");
@@ -33,11 +36,12 @@ const Home = () => {
   const [pass, setPass] = useState("");
   const toast = useToast();
   const handleShowClick = () => setShowPassword(!showPassword);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let data = JSON.parse(localStorage.getItem("userInfo"));
     if (data) {
-      window.location.href = "./chat";
+    navigate('/chat');
     }
   }, []);
 
@@ -73,7 +77,7 @@ const Home = () => {
       // console.log(data);
       await sleep(3000);
       setLoading(false);
-      window.location.href = "./chat";
+    navigate('/chat');
     } catch (err) {
       toast({
         title: "Error Occured!",
@@ -164,7 +168,7 @@ const Home = () => {
                     </InputRightElement>
                   </InputGroup>
                   <FormHelperText textAlign="right">
-                    <Link color={"red.400"}>forgot password?</Link>
+                    <ChakraLink color={"red.400"}>forgot password?</ChakraLink>
                   </FormHelperText>
                 </FormControl>
                 <Button
@@ -183,9 +187,9 @@ const Home = () => {
         </Stack>
         <Box>
           Register here?{" "}
-          <Link color="teal.500" href="/register">
+          <ChakraLink color="teal.500" as={Link} href="/register">
             Sign Up
-          </Link>
+          </ChakraLink>
         </Box>
       </Flex>
     </ColorChange>

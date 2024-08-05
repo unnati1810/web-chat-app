@@ -172,6 +172,13 @@ Resources:
       Type: "AWS::EC2::EIP"
       Properties:
         Domain: "vpc"
+        InstanceId: !Ref EC2Instance
+
+
+    EC2EIP2:
+      Type: "AWS::EC2::EIP"
+      Properties:
+        Domain: "vpc"
 
 
     EC2NatGateway:
@@ -182,7 +189,7 @@ Resources:
           -
             Key: "Name"
             Value: !Sub "nat-gateway-${Stage}"
-        AllocationId: !GetAtt EC2EIP.AllocationId
+        AllocationId: !GetAtt EC2EIP2.AllocationId
 
 
     EC2Route:
@@ -191,13 +198,6 @@ Resources:
         DestinationCidrBlock: "0.0.0.0/0"
         NatGatewayId: !Ref EC2NatGateway
         RouteTableId: !Ref EC2RouteTable
-#
-#
-#  EC2EIPAssociation:
-#    Type: "AWS::EC2::EIPAssociation"
-#    Properties:
-#      AllocationId: !GetAtt EC2EIP.AllocationId
-#      NetworkInterfaceId:  !Ref EC2NetworkInterface7
 
 
     EC2VPCEndpoint:
@@ -226,41 +226,6 @@ Resources:
           - !Ref EC2RouteTable3
         PrivateDnsEnabled: false
 
-
-#    EC2Instance:
-#        Type: "AWS::EC2::Instance"
-#        Properties:
-#            ImageId: "ami-0ba9883b710b05ac6"
-#            InstanceType: "t2.small"
-#            KeyName: "web-chat-app2"
-#            AvailabilityZone: !Ref AvailabilityZoneEast1A
-#            SubnetId: !Ref EC2PublicSubnet1
-#            SecurityGroupIds:
-#              - !Ref EC2SecurityGroup
-#            Tags:
-#              -
-#                Key: "Name"
-#                Value: !Sub "ec2-web-chat-${Stage}"
-#            HibernationOptions:
-#              Configured: false
-#            EnclaveOptions:
-#              Enabled: false
-#            PlacementGroupName: !Ref EC2PlacementGroup
-#            Tenancy: "default"
-#            EbsOptimized: false
-#            SourceDestCheck: true
-#            BlockDeviceMappings:
-#              -
-#                DeviceName: "/dev/xvda"
-#                Ebs:
-#                    Encrypted: false
-#                    VolumeSize: 8
-#                    SnapshotId: "snap-046c3015dc5bd6fe7"
-#                    VolumeType: "gp3"
-#                    DeleteOnTermination: true
-#            IamInstanceProfile: "web-chat-app-ec2"
-
-
   # EC2 Instance
     EC2Instance:
       Type: "AWS::EC2::Instance"
@@ -269,6 +234,7 @@ Resources:
         InstanceType: "t2.small"
         KeyName: "web-chat-app2"
         AvailabilityZone: !Ref AvailabilityZoneEast1A
+        PlacementGroupName: !Ref EC2PlacementGroup
         Tenancy: "default"
         SubnetId: !Ref EC2PublicSubnet1
         EbsOptimized: false
@@ -312,15 +278,6 @@ Resources:
             mkdir my-app
             cd my-app
             sudo git clone https://github.com/unnati1810/web-chat-app.git
-            cd web-chat-app/client
-            sudo npm install
-            sudo npm run build
-            sudo cp -R build/ /usr/share/nginx/html/my-react-app/
-
-            cd /home/ubuntu
-            mkdir my-app
-            cd my-app
-            sudo git clone https://github.com/unnati1810/web-chat-app.git
             cd web-chat-app
             cd client
             sudo npm install
@@ -328,22 +285,28 @@ Resources:
             sudo npm run export
             sudo mkdir -p /usr/share/nginx/html/my-react-app
             sudo cp -R out/* /usr/share/nginx/html/my-react-app/
-            sudo cp -R .next /usr/share/nginx/html/my-react-app/
-            sudo cp -R public /usr/share/nginx/html/my-react-app/
-            sudo tee /etc/nginx/conf.d/nextjs.conf <<EOF
+            sudo tee /etc/nginx/conf.d/react.conf <<EOF
               server {
               listen 80;
               listen [::]:80;
             
-              root /usr/share/nginx/html/my-react-app;
+              root /usr/share/nginx/html/my-react-app; # Ensure this points to the correct directory
               index index.html;
             
               location / {
-              try_files \$uri /index.html;
-              }
+              try_files \$uri \$uri/ /index.html;
+            }
+            
+            # Error and access logs
+              error_log /var/log/nginx/error.log;
+              access_log /var/log/nginx/access.log;
             }
             EOF
-            sudo nginx -t && sudo systemctl reload nginx
+            sudo nginx -t 
+            sudo systemctl start nginx
+            sudo systemctl enable nginx
+            sudo systemctl restart nginx
+            sudo systemctl reload nginx
 
 
     EC2NetworkInterface2:

@@ -4,8 +4,24 @@ import { store } from "../hooks/index";
 import { ChakraProvider } from "@chakra-ui/react";
 import { DefaultSeo } from "next-seo";
 import { Analytics } from "@vercel/analytics/react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Home from "./index";
+import Chat from "./chat";
+import Otp from "./otp";
+import Register from "./register";
+import { useEffect, useState } from "react";
 
 function App({ Component, pageProps }) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // Or some loading indicator
+  }
+
   return (
     <React.Fragment>
       <DefaultSeo
@@ -63,7 +79,15 @@ function App({ Component, pageProps }) {
       />
       <Provider store={store}>
         <ChakraProvider resetCSS>
-          <Component {...pageProps} />
+          <Router>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/otp" element={<Otp />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="*" element={<Component {...pageProps} />} />
+            </Routes>
+          </Router>
         </ChakraProvider>
       </Provider>
       <Analytics
