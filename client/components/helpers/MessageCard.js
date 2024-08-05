@@ -51,11 +51,11 @@ export default function (props) {
     };
 
     // Extract the messageId from props.id
-    const { id: messageId } = props;
+    const { id: messageId } = props.id;
 
     // Make a POST request to the delete endpoint with messageId as a query parameter
     const { data } = await Axios.post(
-      `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/deleteMessage?messageId=${messageId}`,
+      `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/deleteMessage?messageId=${props.id}`,
       {},
       config
     );
