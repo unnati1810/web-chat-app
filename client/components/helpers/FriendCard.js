@@ -7,34 +7,53 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 
-export default function (props) {
-  const { colorMode, toggleColorMode } = useColorMode();
+
+export default function ChatCard({ chat, select, id }) {
+  const { colorMode } = useColorMode();
   const selected = useColorModeValue("#dee4e7", "#373838");
   const bg = useColorModeValue("#f9fafa", "#272727");
   const hover = useColorModeValue("#dee4e7", "#424242");
   const color = useColorModeValue("#000", "#fff");
+  const userInfo = localStorage.getItem("userInfo");
+  const userData = JSON.parse(userInfo);
+
+  // Find the other user in the chat who is not the logged-in user
+  const otherUser = chat.userNames.find(user => user.userId !== userData.userObject.userId);
+
   return (
     <Flex
       px={"2"}
       py={"2"}
       height="fit-content"
-      flexDirection={"row"}
-      alignItems={"center"}
+      flexDirection={"column"}
+      alignItems={"flex-start"}
       gap={"2"}
-      bgColor={props.select == props.id ? selected : bg}
+      bgColor={select === id ? selected : bg}
       cursor="pointer"
       _hover={{ bgColor: hover }}
+      borderRadius="md"
+      boxShadow="sm"
     >
-      <Avatar
-        size="md"
-        name={props.name}
-        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${props.name}`}
-      />
-      <Text fontWeight={"bold"} fontSize={"2xl"} color={color}>
-        {props.name.slice(0, 25) === props.name
-          ? props.name
-          : props.name.slice(0, 24) + "..."}
+      <Text fontWeight={"bold"} fontSize={"lg"} color={color}>
+        {otherUser ? `Chat with ${otherUser.userName}` : chat.chatName}
       </Text>
+      <Text fontSize={"sm"} color={color}>
+        Created At: {new Date(chat.createdAt).toLocaleString()}
+      </Text>
+      <Flex flexDirection="row" alignItems="center" gap={"2"} mt="2">
+        {chat.userNames.map((user) => (
+          <Flex key={user.userId} flexDirection="row" alignItems="center" gap={"2"}>
+            <Avatar
+              size="sm"
+              name={user.userName}
+              src={user.profilePicture}
+            />
+            <Text fontWeight={"bold"} fontSize={"md"} color={color}>
+              {user.userName}
+            </Text>
+          </Flex>
+        ))}
+      </Flex>
     </Flex>
   );
 }

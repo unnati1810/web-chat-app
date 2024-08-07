@@ -11,13 +11,21 @@ import {
 import { useDispatch } from "react-redux";
 import { actionCreators } from "../../hooks";
 import Axios from "axios";
-function UserCard({ gmail, username, userId, socket }) {
+import { useNavigate } from 'react-router-dom';
+
+
+
+function UserCard({ gmail, username, userId,profilePicture, socket }) {
   console.log("Unnati",userId);
   const toast = useToast();
   const dispatch = useDispatch();
   const { colorMode, toggleColorMode } = useColorMode();
   const { ADDFRIEND } = bindActionCreators(actionCreators, dispatch);
+  const navigate = useNavigate();
 
+  const handleRedirect = () => {
+    navigate('/chat');
+  };
   // const getFriendId = async (data, user) => {
    
   //   for (let i = 0; i < data.users.length; i++) {
@@ -41,7 +49,18 @@ function UserCard({ gmail, username, userId, socket }) {
 
       const { data } = await Axios.post(
         "https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/create-chat",
-        { userId1: user.userObject.userId , userId2: userId, chatName:username },
+        // { userId1: user.userObject.userId , userId2: userId, chatName:username },
+
+          {
+            userId1: user.userObject.userId,
+            userName1: user.userObject.userName,
+            profilePicture1: user.userObject.profilePicture,
+            userId2: userId,
+            userName2: username,
+            profilePicture2: profilePicture,
+            chatName: `Chat between ${user.userObject.userName} and ${username}`
+          }
+
         //config
       );
       async function sleep(milliseconds) {
@@ -70,7 +89,7 @@ function UserCard({ gmail, username, userId, socket }) {
       });
       await sleep(500);
       //ADDFRIEND(user_Data);
-      window.location.href = "/chat";
+      handleRedirect();
     } catch (err) {
       toast({
         title: "Error occured!",
@@ -99,7 +118,7 @@ function UserCard({ gmail, username, userId, socket }) {
       <Avatar
         size="md"
         name="dani"
-        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${username}`}
+        src={profilePicture}
       />
 
       <Flex flexDirection={"column"} gap={"2"}>

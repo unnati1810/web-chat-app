@@ -56,8 +56,8 @@ function SideDrawer(props) {
     try {
       setLoading(true);
 
-      // Construct the API endpoint URL with the email query parameter
-      const apiUrl = `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getusers?email=${search}`;
+      // Construct the API endpoint URL with the name query parameter
+      const apiUrl = `https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/getusers?userName=${search}`;
 
       // Send the GET request to the updated API endpoint
       const response = await Axios.get(apiUrl);
@@ -65,20 +65,17 @@ function SideDrawer(props) {
 
       console.log("API Response:", data); // Log the API response for debugging
 
-      // Check if the response is a user object
-      if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-        throw new Error("Expected a user object but received something else.");
+      // Check if the response is an array of users
+      if (!Array.isArray(data)) {
+        throw new Error("Expected an array of users but received something else.");
       }
 
-      // Check if the user is already in the friends list
-      const isFriend = friendsData.some((friend) => friend.username === data.userName);
+      // Filter out users who are already in the friends list
+      const filteredResults = data.filter(user =>
+        !friendsData.some(friend => friend.userId === user.userId)
+      );
 
-      // Only set the result if the user is not already a friend
-      if (!isFriend) {
-        setResult([data]);
-      } else {
-        setResult([]);
-      }
+      setResult(filteredResults);
 
       setLoading(false);
     } catch (err) {
@@ -144,17 +141,21 @@ function SideDrawer(props) {
               {loading ? (
                 <ChatLoader />
               ) : (
-                result.map((v, i) => (
-                  <Box key={i}>
-                    <UserCard
-                      socket={props.socket}
-                      userId={v.userId}
-                    //  userId={v.userId}
-                      gmail={v.email} // Adjusted to match the API response field
-                      username={v.userName} // Adjusted to match the API response field
-                    />
-                  </Box>
-                ))
+                result.length > 0 ? (
+                  result.map((user, index) => (
+                    <Box key={index}>
+                      <UserCard
+                        socket={props.socket}
+                        userId={user.userId}
+                        profilePicture={user.profilePicture}
+                        gmail={user.email}
+                        username={user.userName}
+                      />
+                    </Box>
+                  ))
+                ) : (
+                  <Box>No users found</Box>
+                )
               )}
             </Stack>
           </DrawerBody>

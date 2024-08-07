@@ -19,7 +19,7 @@ import SlideDrawer from "../components/misc/SideDrawer";
 import { actionCreators } from "../hooks";
 import { SunIcon, MoonIcon } from "@chakra-ui/icons";
 import { FiLogOut } from "react-icons/fi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import MessageCard from "../components/helpers/MessageCard";
 import { useDispatch, useSelector } from "react-redux";
 import OverlayChat from "../components/misc/OverlayChat";
@@ -30,6 +30,8 @@ import { io } from "socket.io-client";
 import ScrollableFeed from "react-scrollable-feed";
 import ChatLoader from "../components/animation/ChatLoader";
 import { useNavigate } from 'react-router-dom';
+import ChatCard from "../components/helpers/FriendCard";
+const ENDPOINT2 = 'wss://m0s4s32aaf.execute-api.us-east-1.amazonaws.com/production/';
 
 const ENDPOINT = `${process.env.NEXT_PUBLIC_BACKENDURL}`;
 var socket, selectedChatCompare;
@@ -56,19 +58,19 @@ function Chat() {
   } = bindActionCreators(actionCreators, dispatch);
   const navigate = useNavigate();
 
-
- const handleRedirect = () => {
+  const handleRedirect = () => {
     navigate('/');
   };
-  // const [socket, setSocket] = useState(null);
+
   const chatData = useSelector((state) => state.chat);
   const [friendData, setFriendData] = useState([]);
-  const userData = useSelector((state) => state.user);
+
+  const userInfo = localStorage.getItem("userInfo");
+  const userData = JSON.parse(userInfo);
   const messageData = useSelector((state) => state.messages);
 
   const [socketConnected, setSocketConnected] = useState(false);
   const [currFriend, setCurrFriend] = useState("");
-
 
 
   const fetchMessages = async (username = chatData.name, id = chatData.id) => {
@@ -127,6 +129,7 @@ function Chat() {
            {}, // Sending an empty body as per the given curl request
            config
          );
+   console.log("Friends data data: "+data.toString());
       setFriendData(data);
 
     SETFRIENDS(data, d.username);
@@ -312,7 +315,7 @@ function Chat() {
               colorMode == "light" ? "#c3cfd7" : "#2D3748"
             } `}
           >
-            <PorfileView username={userData.username} gmail={userData.gmail} />
+            <PorfileView username={userData.userObject.userName} gmail={userData.userObject.email} profilePicture={userData.userObject.profilePicture}/>
             <Stack isInline>
               <IconButton
                 size="sm"
@@ -321,7 +324,6 @@ function Chat() {
                 _focus={{ boxShadow: "none" }}
                 icon={colorIcon}
               />
-
               <IconButton
                 icon={<Icon as={FiLogOut} />}
                 _focus={{ boxShadow: "none" }}
@@ -343,6 +345,8 @@ function Chat() {
             </Flex>
              <Flex flexDir={"column"} flexGrow="1" gap="2px">
                     {friendData.map((v, i) => {
+                      console.log("friend data:::: "+v.chatId);
+
                       return (
                         <Box
                           key={i}
@@ -360,10 +364,17 @@ function Chat() {
                                                   };
                           }}
                         >
-                          <FriendCard
-                            name={v.users[0]}
-                            id={v.chatId}
-                            select={chatData.id}
+                          {/*<FriendCard*/}
+                          {/*  name={v.chatName}*/}
+                          {/*  id={v.chatId}*/}
+                          {/*  select={chatData.id}*/}
+                          {/*/>*/}
+                          <ChatCard
+                              key={v.chatId}
+                              chat={v}
+                              id={v.chatId}
+                              select={chatData.id}
+                              // onClick={() => handleChatClick(v.chatId)}
                           />
                         </Box>
                       );
@@ -423,6 +434,7 @@ function Chat() {
                                      updated={v.sentAt}
                                      time={v.sentAt}
                                      isUser={v.userId === userData.userObject.userId}
+                                     profilePicture={v.profilePicture}
                                    />
                         </Box>
                       );

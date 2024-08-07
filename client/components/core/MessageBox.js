@@ -44,6 +44,7 @@ function MessageBox({ socket }) {
       const payload = {
         chatId: chatData.id,
         userId: userData.userObject.userId,
+        profilePicture: userData.userObject.profilePicture,
         messageText: search,
       };
 
@@ -56,6 +57,7 @@ function MessageBox({ socket }) {
       const newMessage = {
         chatId: chatData.id,
         userId: userData.userObject.userId,
+        profilePicture: userData.userObject.profilePicture,
         messageText: search,
         sentAt: new Date().toISOString(),
         messageId: Math.random().toString(36).substr(2, 9), // Generate a temporary ID

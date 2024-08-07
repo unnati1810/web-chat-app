@@ -45,7 +45,7 @@ export default function ({ props }) {
           mt={"3"}
           size="md"
           name={props.name}
-          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${props.name}`}
+          src={props.profilePicture?  props.profilePicture:"https://avatar.iran.liara.run/public/100"}
         />
         <Flex flexGrow="1" flexDirection={"column"} justifyContent={"center"}>
           <Flex

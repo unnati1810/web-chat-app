@@ -45,6 +45,11 @@ const Home = () => {
     }
   }, []);
 
+
+  const handleNavigate = () => {
+    navigate('/register'); // Use the desired route
+  };
+
   const loginUser = async (e) => {
     async function sleep(milliseconds) {
       return await new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -187,7 +192,7 @@ const Home = () => {
         </Stack>
         <Box>
           Register here?{" "}
-          <ChakraLink color="teal.500" as={Link} href="/register">
+          <ChakraLink color="teal.500" onClick={handleNavigate}>
             Sign Up
           </ChakraLink>
         </Box>

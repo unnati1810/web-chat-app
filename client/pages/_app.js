@@ -103,3 +103,11 @@ function App({ Component, pageProps }) {
 }
 
 export default App;
+
+// forgot password - api done
+// profile picture - api done
+// Delete chat - done
+// api fixes and image - done
+
+// forgot password ui
+// webSocket - later

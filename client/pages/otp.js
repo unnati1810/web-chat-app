@@ -32,6 +32,11 @@ const OTP = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
+
+  const handleNavigate = () => {
+    navigate('/'); // Use the desired route
+  };
+
   useEffect(() => {
     let data = JSON.parse(localStorage.getItem("userInfo"));
     if (data == null || Object.keys(data).length === 0) {
@@ -205,7 +210,7 @@ const OTP = () => {
         </Stack>
         <Box>
           Verified already?{" "}
-          <ChakraLink color="teal.500"  as={Link} href="/">
+          <ChakraLink color="teal.500"   onClick={handleNavigate}>
             Sign in
           </ChakraLink>
         </Box>

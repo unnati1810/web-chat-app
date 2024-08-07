@@ -26,6 +26,7 @@ import Axios from "axios";
 import StatisticsView from "../views/StatisticsView";
 import { AiFillGithub } from "react-icons/ai";
 import { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 
 function Navbar(props) {
   const spin = keyframes`
@@ -43,55 +44,58 @@ function Navbar(props) {
     actionCreators,
     dispatch
   );
+  const navigate = useNavigate();
 
-  const removeFriend = async () => {
+
+  const removeChat = async () => {
+    const chatId = props.id; // The ID of the chat to delete
     try {
       const user = JSON.parse(localStorage.getItem("userInfo"));
-      // console.log(props);
-      const config = {
-        headers: {
-          authorization: `Bearer ${user.token}`,
-        },
-        data: { chatId: props.id },
-      };
-      console.log(props.friend);
-      props.socket.emit("delete chat", {
-        chatId: props.id,
-        friend: props.friend,
-      });
-      const { data } = await Axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKENDURL}/chat`,
 
-        config
+      // Axios configuration
+      const config =  { body: { chatId } }
+
+      // Emit socket event to notify other clients (if needed)
+      props.socket.emit("delete chat", { chatId });
+
+      // Perform the DELETE request
+      const { data } = await Axios.post(
+          'https://hq7xe49h0d.execute-api.us-east-1.amazonaws.com/dev1/deleteChat', // Use the correct endpoint
+          config
       );
+
       console.log(data);
-      // console.log("data", data);
+
+      // Show success toast notification
       toast({
         title: "Chat deleted successfully!",
-        description: `Removed chat of ${props.name}`,
+        description: `Removed chat with ID ${chatId}`,
         status: "success",
         duration: 3000,
         isClosable: true,
         position: "bottom",
       });
 
+      // Perform additional state updates or actions
+      navigate('/chat');
       REMOVEFRIEND(props.name);
-      REMOVEUSERMESSAGE(props.id);
+      REMOVEUSERMESSAGE(chatId);
       SETCHAT("", -1);
-      console.log(props.name + props.id + " removed success");
+      console.log(`Chat with ID ${chatId} removed successfully`);
     } catch (err) {
-      // console.log(err);
+      // Show error toast notification
       toast({
-        title: "Error occured!",
-        description: `Failed to delete chat of ${props.name}`,
+        title: "Error occurred!",
+        description: `Failed to delete chat with ID ${chatId}`,
         status: "error",
         duration: 5000,
         isClosable: true,
         position: "bottom",
       });
-      console.log(err);
+      console.error(err);
     }
   };
+
 
   return (
     <Flex
@@ -114,12 +118,12 @@ function Navbar(props) {
       </Text>
       <Container color={"white"} />
 
-      <StatisticsView chatId={props.id} />
+      {/*<StatisticsView chatId={props.id} />*/}
       <IconButton
         variant="link"
         color={color}
         size={"lg"}
-        onClick={removeFriend}
+        onClick={removeChat}
         icon={<MdPersonRemoveAlt1 />}
       />
       <IconButton

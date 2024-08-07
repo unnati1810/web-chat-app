@@ -16,7 +16,7 @@ import {
   Tooltip,
   useColorModeValue,
 } from "@chakra-ui/react";
-export default function ProfileView({ username, gmail }) {
+export default function ProfileView({ username, gmail, profilePicture }) {
   const color = useColorModeValue("#3b3838", "#a49e9e");
   const headcolor = useColorModeValue("#3a3838", "#fff");
   const bgcolor = useColorModeValue("#fff", "#1b1e20");
@@ -25,21 +25,21 @@ export default function ProfileView({ username, gmail }) {
     <>
       <Tooltip placement="right-end" hasArrow label="Profile View">
         <Avatar
-          cursor={"pointer"}
-          onClick={onOpen}
-          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${username}`}
+            cursor={"pointer"}
+            onClick={onOpen}
+            src={profilePicture?  profilePicture:"https://avatar.iran.liara.run/public/100"}
         />
       </Tooltip>
       <Modal onClose={onClose} isOpen={isOpen} isCentered>
-        <ModalOverlay />
+        <ModalOverlay/>
         <ModalContent bgColor={bgcolor}>
           <ModalHeader
-            color={headcolor}
-            fontSize={"3xl"}
-            textTransform={"uppercase"}
-            fontWeight={"extrabold"}
+              color={headcolor}
+              fontSize={"3xl"}
+              textTransform={"uppercase"}
+              fontWeight={"extrabold"}
           >
-            Profile
+          Profile
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -52,7 +52,7 @@ export default function ProfileView({ username, gmail }) {
               <Avatar
                 size="xl"
                 name={username}
-                src={`https://api.dicebear.com/7.x/bottts/svg?seed=${username}`}
+                src={profilePicture?  profilePicture:"https://avatar.iran.liara.run/public/100"}
               />
               <Flex flexDirection={"column"} color={color}>
                 <Text
