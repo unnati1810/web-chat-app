@@ -133,7 +133,7 @@ function Navbar(props) {
         icon={<AiFillGithub />}
         onClick={() => {
           window.location.href =
-            "https://github.com/daniel-jebarson/web-chat-app";
+            "https://github.com/unnati1810/web-chat-app";
         }}
       />
       <IconButton

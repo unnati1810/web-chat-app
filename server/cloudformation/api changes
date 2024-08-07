@@ -1,0 +1,708 @@
+
+/////////////////Create user
+
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, GetCommand} = require("@aws-sdk/lib-dynamodb");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { CognitoIdentityProviderClient, SignUpCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const { SNSClient, CreateTopicCommand } = require("@aws-sdk/client-sns");
+
+
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const s3Client = new S3Client({});
+const cognitoClient = new CognitoIdentityProviderClient({});
+const snsClient = new SNSClient({});
+
+const USERS_TABLE = process.env.USERS_TABLE;
+const BUCKET_NAME = process.env.BUCKET_NAME;
+const USER_POOL_ID = process.env.USER_POOL_ID;
+const CLIENT_ID = process.env.CLIENT_ID;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+  };
+
+  try {
+    const { userName, email, password, profilePicture } = JSON.parse(event.body);
+    const createdAt = new Date().toISOString();
+    const updatedAt = createdAt;
+
+    // Sign up the user in Cognito
+    const signUpCommand = new SignUpCommand({
+      ClientId: CLIENT_ID,
+      Username: email,
+      Password: password,
+      UserAttributes: [
+        { Name: 'email', Value: email },
+        { Name: 'name', Value: userName }
+      ]
+    });
+
+    const signUpResponse = await cognitoClient.send(signUpCommand);
+    const cognitoUserSub = signUpResponse.UserSub;
+    const userId=cognitoUserSub;
+
+    // Upload the profile picture to S3
+    // const profilePictureKey = `profile-pictures/${userId}.png`;
+    // await s3Client.send(new PutObjectCommand({
+    //   Bucket: BUCKET_NAME,
+    //   Key: profilePictureKey,
+    //   Body: Buffer.from(profilePicture, 'base64'),
+    //   ContentEncoding: 'base64',
+    //   ContentType: 'image/png'
+    // }));
+
+    // Create SNS topic for the user
+    const snsTopicName = `user-${userId}-notifications`;
+    const createTopicCommand = new CreateTopicCommand({
+      Name: snsTopicName
+    });
+    const createTopicResponse = await snsClient.send(createTopicCommand);
+    const snsTopicArn = createTopicResponse.TopicArn;
+
+    // Store user information in DynamoDB
+    await ddbDocClient.send(new PutCommand({
+      TableName: USERS_TABLE,
+      Item: {
+        userId,
+        userName,
+        email,
+        password,
+        profilePicture,
+        createdAt,
+        updatedAt,
+        snsTopicArn
+      }
+    }));
+
+     // Fetch the user details from DynamoDB
+    const userData = await ddbDocClient.send(new GetCommand({
+      TableName: USERS_TABLE,
+      Key: { email }
+    }));
+
+    return {
+      ...response,
+       body: JSON.stringify({
+        message: 'User created successfully.Please check your email to verify your account.',
+        userObject: userData.Item
+      })
+    };
+  } catch (error) {
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error creating user: ${error.message}` })
+    };
+  }
+};
+
+
+
+
+
+//login api is perfect
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////Forgot password
+
+
+
+
+
+const { CognitoIdentityProviderClient, ForgotPasswordCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, GetCommand } = require("@aws-sdk/lib-dynamodb");
+
+const cognitoClient = new CognitoIdentityProviderClient({});
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+
+const USER_POOL_ID = process.env.USER_POOL_ID;
+const CLIENT_ID = process.env.CLIENT_ID;
+const USERS_TABLE = process.env.USERS_TABLE;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+  };
+
+  try {
+    // Check if the event body is provided and is a valid JSON string
+    if (!event.body) {
+      return {
+        ...response,
+        statusCode: 400,
+        body: JSON.stringify({ message: "Request body is missing" })
+      };
+    }
+
+    const { email } = event.body;
+
+    if (!email) {
+      return {
+        ...response,
+        statusCode: 400,
+        body: JSON.stringify({ message: "Email is required" })
+      };
+    }
+
+    // Check if the user exists in DynamoDB
+    const result = await ddbDocClient.send(new GetCommand({
+      TableName: USERS_TABLE,
+      Key: { email }
+    }));
+
+    if (!result.Item) {
+      return {
+        ...response,
+        statusCode: 404,
+        body: JSON.stringify({ message: 'User not found' })
+      };
+    }
+
+    // Trigger forgot password process in Cognito
+    const forgotPasswordCommand = new ForgotPasswordCommand({
+      ClientId: CLIENT_ID,
+      Username: email
+    });
+
+    await cognitoClient.send(forgotPasswordCommand);
+
+    return {
+      ...response,
+      body: JSON.stringify({ message: 'Password reset initiated. Please check your email for further instructions.' })
+    };
+  } catch (error) {
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error initiating password reset: ${error.message}` })
+    };
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////reset password
+
+const { CognitoIdentityProviderClient, ConfirmForgotPasswordCommand } = require("@aws-sdk/client-cognito-identity-provider");
+
+const cognitoClient = new CognitoIdentityProviderClient({});
+const CLIENT_ID = process.env.CLIENT_ID;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+  };
+
+  try {
+    // Parse the request body
+    const { email, otp, newPassword } = event.body;
+
+    // Validate input
+    if (!email || !otp || !newPassword) {
+      return {
+        ...response,
+        statusCode: 400,
+        body: JSON.stringify({ message: "Email, OTP, and new password are required" })
+      };
+    }
+
+    // Confirm the password reset using the OTP
+    const confirmForgotPasswordCommand = new ConfirmForgotPasswordCommand({
+      ClientId: CLIENT_ID,
+      Username: email,
+      ConfirmationCode: otp,
+      Password: newPassword
+    });
+
+    await cognitoClient.send(confirmForgotPasswordCommand);
+
+    return {
+      ...response,
+      body: JSON.stringify({ message: "Password reset successful. You can now log in with your new password." })
+    };
+  } catch (error) {
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error resetting password: ${error.message}` })
+    };
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////Create chat
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const CHATS_TABLE = process.env.CHATS_TABLE;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+  };
+
+  try {
+    const { userId1, userName1, profilePicture1, userId2, userName2, profilePicture2, chatName } = JSON.parse(event.body);
+    const chatId = generateUUID();
+    const createdAt = new Date().toISOString();
+    const updatedAt = createdAt;
+
+    // Scan to check if a chat already exists between userId1 and userId2
+    const scanParams = {
+      TableName: CHATS_TABLE,
+      FilterExpression: 'contains(#users, :userId1) AND contains(#users, :userId2)',
+      ExpressionAttributeNames: {
+        '#users': 'users'
+      },
+      ExpressionAttributeValues: {
+        ':userId1': userId1,
+        ':userId2': userId2
+      }
+    };
+
+    const existingChats = await ddbDocClient.send(new ScanCommand(scanParams));
+
+    if (existingChats.Items.length > 0) {
+      return {
+        ...response,
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Chat already exists between these users.' })
+      };
+    }
+
+    // Create a new chat
+    await ddbDocClient.send(new PutCommand({
+      TableName: CHATS_TABLE,
+      Item: {
+        chatId,
+        chatName,
+        users: [userId1, userId2],
+        createdAt,
+        updatedAt,
+        lastMessageSent: null,
+        userNames: [
+          { userId: userId1, userName: userName1, profilePicture: profilePicture1 },
+          { userId: userId2, userName: userName2, profilePicture: profilePicture2 }
+        ]
+      }
+    }));
+
+    return {
+      ...response,
+      body: JSON.stringify({ message: 'Chat created successfully' })
+    };
+  } catch (error) {
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error creating chat: ${error.message}` })
+    };
+  }
+};
+
+function generateUUID() {
+  // Generate random numbers
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  // Generate a UUID v4
+  const randomBytes = [];
+  for (let i = 0; i < 16; i++) {
+    randomBytes.push(getRandomInt(0, 255));
+  }
+
+  // Set the version to 4 (UUID v4)
+  randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40; // version 4
+  // Set the variant to 1 (RFC 4122 variant)
+  randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80;
+
+  // Convert bytes to a UUID string
+  const hex = randomBytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+
+
+
+
+
+////////////getchats is perfect
+
+
+///////////////get users
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const USERS_TABLE = process.env.USERS_TABLE;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,GET"
+    }
+  };
+
+  try {
+    const { userName } = event.queryStringParameters;
+
+    if (!userName) {
+      return {
+        ...response,
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Name query parameter is required' }),
+      };
+    }
+
+    // Scan to find users whose name contains the given query
+    const scanParams = {
+      TableName: USERS_TABLE,
+      FilterExpression: 'contains(#userName, :userName)',
+      ExpressionAttributeNames: {
+        '#userName': 'userName',
+      },
+      ExpressionAttributeValues: {
+        ':userName': userName,
+      },
+    };
+
+    const data = await ddbDocClient.send(new ScanCommand(scanParams));
+
+    if (data.Items.length === 0) {
+      return {
+        ...response,
+        statusCode: 404,
+        body: JSON.stringify({ message: 'No users found with the given name' }),
+      };
+    }
+
+    return {
+      ...response,
+      body: JSON.stringify(data.Items)
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error fetching users: ${error.message}` })
+    };
+  }
+};
+
+
+
+
+send message
+delete message
+edit message working correctly no need to change
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///////////////delete chat
+
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
+
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const CHATS_TABLE = process.env.CHATS_TABLE; // Make sure this is set in your Lambda environment variables
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+  };
+
+  try {
+    const { chatId } = event.body;
+
+    if (!chatId) {
+      return {
+        ...response,
+        statusCode: 400,
+        body: JSON.stringify({ message: "Chat ID is required" }),
+      };
+    }
+
+    // Define parameters for the DeleteCommand
+    const deleteParams = {
+      TableName: CHATS_TABLE,
+      Key: { chatId },
+    };
+
+    // Delete the chat from DynamoDB
+    await ddbDocClient.send(new DeleteCommand(deleteParams));
+
+    return {
+      ...response,
+      body: JSON.stringify({ message: "Chat deleted successfully" }),
+    };
+  } catch (error) {
+    console.error("Error deleting chat:", error);
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error deleting chat: ${error.message}` }),
+    };
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////send message
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const MESSAGES_TABLE = process.env.MESSAGES_TABLE;
+const CHATS_TABLE = process.env.CHATS_TABLE;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST"
+    }
+  };
+
+  try {
+    const { chatId, userId, messageText, profilePicture } = JSON.parse(event.body);
+
+    if (!chatId || !userId || !messageText) {
+      throw new Error("Missing required fields: chatId, userId, messageText");
+    }
+
+    const messageId = generateUUID();
+    const sentAt = new Date().toISOString();
+
+    // Insert the new message with profilePicture
+    await ddbDocClient.send(new PutCommand({
+      TableName: MESSAGES_TABLE,
+      Item: {
+        messageId,
+        chatId,
+        userId,
+        messageText,
+        profilePicture,  // Add profilePicture to the message item
+        sentAt
+      }
+    }));
+
+    // Update the chat with the timestamp of the last message sent
+    await ddbDocClient.send(new UpdateCommand({
+      TableName: CHATS_TABLE,
+      Key: { chatId },
+      UpdateExpression: 'SET lastMessageSent = :sentAt',
+      ExpressionAttributeValues: {
+        ':sentAt': sentAt
+      }
+    }));
+
+    return {
+      ...response,
+      body: JSON.stringify({ message: 'Message sent successfully' })
+    };
+  } catch (error) {
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error sending message: ${error.message}` })
+    };
+  }
+};
+
+function generateUUID() {
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  const randomBytes = [];
+  for (let i = 0; i < 16; i++) {
+    randomBytes.push(getRandomInt(0, 255));
+  }
+
+  randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40;
+  randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80;
+
+  const hex = randomBytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///get messages
+
+
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+
+const ddbClient = new DynamoDBClient({});
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const MESSAGES_TABLE = process.env.MESSAGES_TABLE;
+
+exports.handler = async (event) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,GET"
+    }
+  };
+
+  try {
+    const { chatId } = event.queryStringParameters;
+
+    if (!chatId) {
+      throw new Error("Missing required query parameter: chatId");
+    }
+
+    const params = {
+      TableName: MESSAGES_TABLE,
+      FilterExpression: 'chatId = :chatId',
+      ExpressionAttributeValues: {
+        ':chatId': chatId
+      }
+      // DynamoDB Scan does not support sorting. Sorting must be done client-side.
+    };
+
+    const result = await ddbDocClient.send(new ScanCommand(params));
+
+    // Sort by `sentAt` after fetching the results
+    const sortedItems = result.Items.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+
+    return {
+      ...response,
+      body: JSON.stringify(sortedItems)
+    };
+  } catch (error) {
+    return {
+      ...response,
+      statusCode: 500,
+      body: JSON.stringify({ message: `Error fetching messages: ${error.message}` })
+    };
+  }
+};
+
+
+
