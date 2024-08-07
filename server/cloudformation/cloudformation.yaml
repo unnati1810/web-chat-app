@@ -8,6 +8,9 @@ Parameters:
   RoleARN:
     Type: String
     Default: "arn:aws:iam::373971603424:role/LabRole"
+  BackupARN:
+    Type: String
+    Default: "arn:aws:iam::373971603424:role/aws-service-role/backup.amazonaws.com/AWSServiceRoleForBackup"
   Region:
     Type: String
     Default: "us-east-1"
@@ -1451,6 +1454,44 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGatewayRestApi
       StageName: !Ref Stage
+
+
+
+
+  # Backup Vault
+  BackupVault:
+    Type: 'AWS::Backup::BackupVault'
+    Properties:
+      BackupVaultName: !Sub "backup-vault-${Stage}"
+
+  # Backup Plan
+  BackupPlan:
+    Type: 'AWS::Backup::BackupPlan'
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub "backup-plan-${Stage}"
+        BackupPlanRule:
+          - RuleName: !Sub "weekly-backup-${Stage}"
+            TargetBackupVault: !Ref BackupVault
+            ScheduleExpression: "cron(0 0 ? * 2 *)" # Weekly backup every Monday at midnight UTC
+            Lifecycle:
+              DeleteAfterDays: 30 # Retain backups for 30 days
+
+
+  # Backup Selection
+  BackupSelection:
+    Type: AWS::Backup::BackupSelection
+    Properties:
+      BackupPlanId: !Ref BackupPlan
+      BackupSelection:
+        SelectionName: !Sub "backup-selection-${Stage}"
+        IamRoleArn: !Ref RoleARN
+        Resources:
+          - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/user-table-${Stage}"
+          - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/chat-table-${Stage}"
+          - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/message-table-${Stage}"
+
+
 
 Outputs:
   ApiUrl:

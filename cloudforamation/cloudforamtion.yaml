@@ -260,6 +260,10 @@ Resources:
           Fn::Base64: !Sub |
             #!/bin/bash
             sudo dnf update -y
+            sudo apt-get install -y nfs-common
+            sudo mkdir -p /mnt/efs
+            echo "${EFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0" | sudo tee -a /etc/fstab
+            sudo mount -a         
             sudo dnf install -y git
             sudo dnf install -y nodejs npm
             sudo npm install -g npm@latest
@@ -284,13 +288,15 @@ Resources:
             sudo npm run build
             sudo npm run export
             sudo mkdir -p /usr/share/nginx/html/my-react-app
+            sudo mkdir -p /mnt/efs/usr/share/nginx/html/my-react-app
             sudo cp -R out/* /usr/share/nginx/html/my-react-app/
+            sudo cp -R /usr/share/nginx/html/my-react-app/* /mnt/efs/usr/share/nginx/html/my-react-app/
             sudo tee /etc/nginx/conf.d/react.conf <<EOF
               server {
               listen 80;
               listen [::]:80;
             
-              root /usr/share/nginx/html/my-react-app; # Ensure this points to the correct directory
+              root /mnt/efs/usr/share/nginx/html/my-react-app; # Ensure this points to the correct directory
               index index.html;
             
               location / {
@@ -533,18 +539,147 @@ Resources:
                 IpProtocol: "tcp"
                 ToPort: 2049
 
-    EC2LaunchTemplate:
-        Type: "AWS::EC2::LaunchTemplate"
+    LaunchConfiguration:
+        Type: 'AWS::AutoScaling::LaunchConfiguration'
         Properties:
-            LaunchTemplateName: !Sub "launch-template-${Stage}"
-            LaunchTemplateData: 
-                IamInstanceProfile: 
-                    Arn: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/LabInstanceProfile"
-                SecurityGroupIds: 
-                  - !Ref EC2SecurityGroup
-                KeyName: "web-chat-app2"
-                ImageId: "ami-0ba9883b710b05ac6"
-                InstanceType: "t2.small"
+            ImageId: "ami-0ba9883b710b05ac6"
+            KeyName: "web-chat-app2"
+            InstanceType: "t2.small"
+            SecurityGroups:
+                - !Ref EC2SecurityGroup
+            UserData:
+                Fn::Base64: !Sub |
+                  #!/bin/bash
+                  sudo dnf update -y
+                  sudo dnf install -y git
+                  sudo dnf install -y nodejs npm
+                  sudo npm install -g npm@latest
+                  sudo dnf install -y nginx
+                  sudo mkdir -p /usr/share/nginx/html/my-react-app
+                  echo 'server {
+                    listen 80;
+                    listen [::]:80;
+                    root /usr/share/nginx/html/my-react-app/build;
+                  
+                    location / {
+                    try_files $uri /index.html;
+                  }
+                  }' | sudo tee /etc/nginx/conf.d/react.conf >/dev/null
+                  cd /home/ec2-user
+                  mkdir my-app
+                  cd my-app
+                  sudo git clone https://github.com/unnati1810/web-chat-app.git
+                  cd web-chat-app
+                  cd client
+                  sudo npm install
+                  sudo npm run build
+                  sudo npm run export
+                  sudo mkdir -p /usr/share/nginx/html/my-react-app
+                  sudo cp -R out/* /usr/share/nginx/html/my-react-app/
+                  sudo tee /etc/nginx/conf.d/react.conf <<EOF
+                    server {
+                    listen 80;
+                    listen [::]:80;
+                  
+                    root /usr/share/nginx/html/my-react-app; # Ensure this points to the correct directory
+                    index index.html;
+                  
+                    location / {
+                    try_files \$uri \$uri/ /index.html;
+                  }
+                  
+                  # Error and access logs
+                    error_log /var/log/nginx/error.log;
+                    access_log /var/log/nginx/access.log;
+                  }
+                  EOF
+                  sudo nginx -t 
+                  sudo systemctl start nginx
+                  sudo systemctl enable nginx
+                  sudo systemctl restart nginx
+                  sudo systemctl reload nginx                    
+
+
+  # Auto Scaling Group
+    AutoScalingGroup:
+      Type: "AWS::AutoScaling::AutoScalingGroup"
+      Properties:
+        AutoScalingGroupName: !Sub "asg-${Stage}"
+        LaunchConfigurationName: !Ref LaunchConfiguration
+        MinSize: "1"
+        MaxSize: "1"
+        DesiredCapacity: "1"
+        VPCZoneIdentifier:
+          - !Ref EC2PublicSubnet1
+          - !Ref EC2PublicSubnet2
+        Tags:
+          - Key: Name
+            Value: !Sub "web-chat-app-asg-${Stage}"
+            PropagateAtLaunch: true
+        HealthCheckType: "EC2"
+        HealthCheckGracePeriod: "300" # Ensure this is appropriate
+
+  # Scaling Up Alarm
+    ScaleUpAlarm:
+      Type: "AWS::CloudWatch::Alarm"
+      Properties:
+        AlarmName: !Sub "scale-up-alarm-${Stage}"
+        ComparisonOperator: "GreaterThanOrEqualToThreshold"
+        EvaluationPeriods: "2"
+        MetricName: "CPUUtilization"
+        Namespace: "AWS/EC2"
+        Period: "60"
+        Statistic: "Average"
+        Threshold: "80"
+        AlarmActions:
+          - !Ref ScaleUpPolicy
+        OKActions:
+          - !Ref ScaleUpPolicy
+        Dimensions:
+          - Name: "AutoScalingGroupName"
+            Value: !Ref AutoScalingGroup
+
+  # Scaling Down Alarm
+    ScaleDownAlarm:
+      Type: "AWS::CloudWatch::Alarm"
+      Properties:
+        AlarmName: !Sub "scale-down-alarm-${Stage}"
+        ComparisonOperator: "LessThanOrEqualToThreshold"
+        EvaluationPeriods: "2"
+        MetricName: "CPUUtilization"
+        Namespace: "AWS/EC2"
+        Period: "60"
+        Statistic: "Average"
+        Threshold: "20"
+        AlarmActions:
+          - !Ref ScaleDownPolicy
+        OKActions:
+          - !Ref ScaleDownPolicy
+        Dimensions:
+          - Name: "AutoScalingGroupName"
+            Value: !Ref AutoScalingGroup
+
+  # Scaling Up Policy
+    ScaleUpPolicy:
+      Type: "AWS::AutoScaling::ScalingPolicy"
+      Properties:
+        AutoScalingGroupName: !Ref AutoScalingGroup
+        PolicyName: !Sub "scale-up-policy-${Stage}"
+        PolicyType: "SimpleScaling"
+        ScalingAdjustment: "1"
+        AdjustmentType: "ChangeInCapacity"
+        Cooldown: "300"
+
+  # Scaling Down Policy
+    ScaleDownPolicy:
+      Type: "AWS::AutoScaling::ScalingPolicy"
+      Properties:
+        AutoScalingGroupName: !Ref AutoScalingGroup
+        PolicyName: !Sub "scale-down-policy-${Stage}"
+        PolicyType: "SimpleScaling"
+        ScalingAdjustment: "-1"
+        AdjustmentType: "ChangeInCapacity"
+        Cooldown: "300"
 
     ElasticLoadBalancingV2TargetGroup:
         Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
@@ -607,8 +742,6 @@ Resources:
               - 
                 Key: "stickiness.app_cookie.cookie_name"
                 Value: ""
-
-
 
     EC2NetworkInterface:
         Type: "AWS::EC2::NetworkInterface"
@@ -680,3 +813,18 @@ Resources:
               - 
                 Key: "Name"
                 Value:  !Sub "EFS-${Stage}"
+
+
+#  To test the autoscaling use below command in the instance's ssh connect terminal
+#  sudo yum install stress -y
+#  stress --cpu 4 --timeout 600
+#  This command will stress 4 CPU cores for 10 minutes. Adjust the number of --cpu cores based on your instance type and desired load.
+#  ctrl+c twice  terminate command to scale down the alarm
+#  Backup works inside the backend tables.
+#
+#
+#
+#
+#
+#
+#
