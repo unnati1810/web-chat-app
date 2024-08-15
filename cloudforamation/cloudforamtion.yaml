@@ -265,11 +265,11 @@ Resources:
             sudo dnf install -y nodejs npm
             sudo npm install -g npm@latest
             sudo dnf install -y nginx
-            sudo mkdir -p /usr/share/nginx/html/my-react-app
+            sudo mkdir -p /mnt/efs/usr/share/nginx/html/my-react-app
             echo 'server {
               listen 80;
               listen [::]:80;
-              root /usr/share/nginx/html/my-react-app;
+              root /mnt/efs/usr/share/nginx/html/my-react-app;
             
               location / {
               try_files $uri /index.html;
@@ -284,8 +284,8 @@ Resources:
             sudo npm install
             sudo npm run build
             sudo npm run export
-            sudo mkdir -p /usr/share/nginx/html/my-react-app
-            sudo cp -R out/* /usr/share/nginx/html/my-react-app/
+            sudo mkdir -p /mnt/efs/usr/share/nginx/html/my-react-app
+            sudo cp -R out/* /mnt/efs/usr/share/nginx/html/my-react-app/
             echo 'server {
               listen 80;
               listen [::]:80;
