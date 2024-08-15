@@ -44,14 +44,15 @@ export default function (props) {
 
 
   const handleSendMessage = (message) => {
-    console.error('WebSocket is open. ReadyState:', ws.current.readyState);
+    try {
+      console.error('WebSocket is open. ReadyState:', props.socket.readyState);
 
-    if (props.socket && props.socket.readyState === WebSocket.OPEN && message) {
-      props. socket.send(JSON.stringify({ message: message, "chatId": chatData.id }));
-    } else {
-      console.error('WebSocket is not open. ReadyState:', ws.current.readyState);
-    }
-
+      if (props.socket && props.socket.readyState === WebSocket.OPEN && message) {
+        props.socket.send(JSON.stringify({message: message, "chatId": chatData.id}));
+      } else {
+        console.error('WebSocket is not open. ReadyState:', props.socket.readyState);
+      }
+    }catch (e){}
   }
 
   const handleDelete = async () => {
@@ -240,15 +241,15 @@ export default function (props) {
                     ? props.name
                     : props.name.slice(0, 24) + "..."}
                 </Text>
-                <Text
-                  fontSize={"12"}
-                  position={"relative"}
-                  top={"0"}
-                  color={color}
-                >
-                  {new Date(props.time).toLocaleString()}
-                  {/* {props.time} */}
-                </Text>
+                {/*<Text*/}
+                {/*  fontSize={"12"}*/}
+                {/*  position={"relative"}*/}
+                {/*  top={"0"}*/}
+                {/*  color={color}*/}
+                {/*>*/}
+                {/*  {new Date(props.time).toLocaleString()}*/}
+                {/*  /!* {props.time} *!/*/}
+                {/*</Text>*/}
               </Flex>
               <Flex>
                 {editing ? (

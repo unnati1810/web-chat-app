@@ -289,7 +289,7 @@ Resources:
             echo 'server {
               listen 80;
               listen [::]:80;
-              root /usr/share/nginx/html/my-react-app;
+              root /mnt/efs/usr/share/nginx/html/my-react-app;
 
               #react app
               location / {
