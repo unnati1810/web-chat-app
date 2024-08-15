@@ -14,8 +14,7 @@ import { Search2Icon } from "@chakra-ui/icons";
 import { bindActionCreators } from "redux";
 import { actionCreators } from "../../hooks";
 import Axios from "axios";
-// import { socket } from "../../util/socket";
-function MessageBox({ socket }) {
+function MessageBox({  onSendMessage }) {
   const dispatch = useDispatch();
   const color = useColorModeValue("#fff", "#000");
   const bg = useColorModeValue("#000", "#fff");
@@ -30,6 +29,10 @@ function MessageBox({ socket }) {
       handleMessage();
     }
   };
+
+
+
+
 
   const handleMessage = async () => {
     const userData = JSON.parse(localStorage.getItem("userInfo"));
@@ -63,12 +66,16 @@ function MessageBox({ socket }) {
         messageId: Math.random().toString(36).substr(2, 9), // Generate a temporary ID
       };
 
+      // Call the function passed from the parent component
+      if (onSendMessage) {
+        onSendMessage(newMessage);
+      }
+
       dispatch({
         type: "ADD_MESSAGE",
         message: newMessage,
         id: chatData.id,
       });
-      socket.emit("new message", newMessage);
       SETCHAT(name, id);
       setSearch(""); // Clear the input field after sending the message
     } catch (err) {

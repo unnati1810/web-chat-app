@@ -50,6 +50,10 @@ const Home = () => {
     navigate('/register'); // Use the desired route
   };
 
+  const handleNavigateForgot = () => {
+    navigate('/reset-password'); // Use the desired route
+  };
+
   const loginUser = async (e) => {
     async function sleep(milliseconds) {
       return await new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -173,7 +177,7 @@ const Home = () => {
                     </InputRightElement>
                   </InputGroup>
                   <FormHelperText textAlign="right">
-                    <ChakraLink color={"red.400"}>forgot password?</ChakraLink>
+                    <ChakraLink color={"red.400"} onClick={handleNavigateForgot}>forgot password?</ChakraLink>
                   </FormHelperText>
                 </FormControl>
                 <Button

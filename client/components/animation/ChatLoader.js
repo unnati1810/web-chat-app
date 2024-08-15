@@ -1,15 +1,12 @@
 import React from "react";
-
 import {
   Skeleton,
   SkeletonCircle,
-  SkeletonText,
   Flex,
   Container,
   Text,
   Stack,
   Avatar,
-  Box,
 } from "@chakra-ui/react";
 
 function chatLoader({ number }) {
@@ -17,9 +14,10 @@ function chatLoader({ number }) {
     <Stack mt={"3"}>
       {Array(number || 5)
         .fill("_")
-        .map((_) => {
+        .map((_, index) => {
           return (
             <Container
+              key={index}  // Add the key prop here
               display={"flex"}
               p={"5"}
               alignItems={"center"}

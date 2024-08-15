@@ -24,11 +24,23 @@ export default function ProfileView({ username, gmail, profilePicture }) {
   return (
     <>
       <Tooltip placement="right-end" hasArrow label="Profile View">
-        <Avatar
-            cursor={"pointer"}
-            onClick={onOpen}
-            src={profilePicture?  profilePicture:"https://avatar.iran.liara.run/public/100"}
-        />
+        <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px'}}>
+          <Avatar
+              cursor={"pointer"}
+              onClick={onOpen}
+              src={profilePicture ? profilePicture : "https://avatar.iran.liara.run/public/100"}
+          />
+          <Text
+              fontSize={"l"}
+              fontStyle={"oblique"}
+              fontWeight={"bold"}
+              wordBreak={"break-all"}
+          >
+            {username}
+          </Text>
+        </div>
+
+
       </Tooltip>
       <Modal onClose={onClose} isOpen={isOpen} isCentered>
         <ModalOverlay/>
@@ -39,9 +51,9 @@ export default function ProfileView({ username, gmail, profilePicture }) {
               textTransform={"uppercase"}
               fontWeight={"extrabold"}
           >
-          Profile
+            Profile
           </ModalHeader>
-          <ModalCloseButton />
+          <ModalCloseButton/>
           <ModalBody>
             <Container
               display={"flex"}

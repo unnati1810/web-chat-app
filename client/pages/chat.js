@@ -25,8 +25,6 @@ import { useDispatch, useSelector } from "react-redux";
 import OverlayChat from "../components/misc/OverlayChat";
 import PorfileView from "../components/views/ProfileView";
 import Axios from "axios";
-import HeaderMeta from "../components/meta/HeaderMeta";
-import { io } from "socket.io-client";
 import ScrollableFeed from "react-scrollable-feed";
 import ChatLoader from "../components/animation/ChatLoader";
 import { useNavigate } from 'react-router-dom';
@@ -89,7 +87,6 @@ function Chat() {
     ADDUSERMESSAGE(id, data);
     SETCHAT(username, id);
     setCurrFriend(getFriendId(id));
-    socket.emit("join chat", id);
   } catch (err) {
     console.log(err);
     toast({
@@ -102,6 +99,58 @@ function Chat() {
     });
   }
 };
+
+
+  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
+  const ws = useRef(null);
+
+  const handleConnect = () => {
+    if (ws.current) {
+      ws.current.close();
+    }
+    if(!selectedChat.id){
+      return;
+    }
+
+    ws.current = new WebSocket(`wss://m0s4s32aaf.execute-api.us-east-1.amazonaws.com/production/?chatId=${selectedChat.id}`);
+
+    ws.current.onopen = () => {
+      console.log('WebSocket connected');
+      setConnectionStatus('Connected');
+    };
+
+    ws.current.onmessage =  async (event) => {
+      console.log('Message received:', event.data);
+      await fetchMessages();
+      // setMessages((prevMessages) => [...prevMessages, event.data]);
+    };
+
+    ws.current.onclose = () => {
+      console.log('WebSocket disconnected');
+      setConnectionStatus('Disconnected');
+    };
+
+    ws.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setConnectionStatus('Error');
+    };
+  };
+
+  const handleDisconnect = () => {
+    if (ws.current) {
+      ws.current.close();
+    }
+  };
+
+  const handleSendMessage = (message) => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN && message) {
+      ws.current.send(JSON.stringify({ message: message, "chatId": selectedChat.id }));
+    } else {
+      console.error('WebSocket is not open. ReadyState:', ws.current.readyState);
+    }
+
+  };
+
 
   const getFriendId = (id) => {
     console.log("came");
@@ -132,7 +181,7 @@ function Chat() {
    console.log("Friends data data: "+data.toString());
       setFriendData(data);
 
-    SETFRIENDS(data, d.username);
+//    SETFRIENDS(data, d.username);
     // console.log(data);
   } catch (err) {
     console.log(err);
@@ -184,87 +233,31 @@ function Chat() {
     }
   }, []);
 
-  useEffect(() => {
-    socket = io(ENDPOINT, { transports: ["websocket"] });
-
-    socket.emit("setup", JSON.parse(localStorage.getItem("userInfo")));
-    socket.on("connected", () => {
-      setSocketConnected(true);
-      console.log("connected to socket");
-    });
-  }, []);
 
   useEffect(() => {
-    fetchMessages(selectedChat.name, selectedChat.id);
-    selectedChatCompare = selectedChat;
+    if (selectedChat && selectedChat.id) {
+      handleConnect(selectedChat.id);
+      fetchMessages(selectedChat.name, selectedChat.id);
+      selectedChatCompare = selectedChat;
+    }
+
+    return () => {
+      handleDisconnect(); // Clean up previous connection when chat changes
+    };
   }, [selectedChat]);
+
+
+  const handleNewMessage = (message) => {
+    // This function will be called when a new message is sent
+    console.log("New message sent:", message);
+    handleSendMessage(message);
+  };
+
+
 
   async function sleep(milliseconds) {
     return await new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
-
-  useEffect(() => {
-    socket.on("deleted chat", (deletedChat) => {
-      NOTIFYDELETEDCHAT(deletedChat.chatId);
-      SETCHAT("", -1);
-    });
-
-    socket.on("added chat", (addedChat) => {
-      console.log("message from server");
-      console.log(addedChat);
-      ADDFRIEND(addedChat);
-      SETCHAT("", -1);
-    });
-
-    socket.on("update deleted", (deletedMessage) => {
-      if (
-        !selectedChatCompare ||
-        selectedChatCompare.id !== deletedMessage.chat._id
-      ) {
-        //give notifs
-        console.log("notifs");
-      } else {
-        // console.log("deleted message");
-        // console.log(deletedMessage);
-        DELETEMESSAGE(deletedMessage.chat._id, deletedMessage.num);
-        fetchMessages();
-      }
-    });
-
-    socket.on("update edited", (editedMessage) => {
-      if (
-        !selectedChatCompare ||
-        selectedChatCompare.id !== editedMessage.chat._id
-      ) {
-        //give notifs
-        console.log("notifs");
-      } else {
-        // console.log("edited message");
-        // console.log(editedMessage);
-        EDITMESSAGE(editedMessage, editedMessage.chat._id, editedMessage.num);
-        fetchMessages();
-      }
-    });
-
-    socket.on("message received", (newMessageReceived) => {
-      if (
-        !selectedChatCompare ||
-        selectedChatCompare.id !== newMessageReceived.chat._id
-      ) {
-        //give notifs
-        console.log("notifs");
-      } else {
-        // console.log("new message");
-        // console.log(newMessageReceived);
-        dispatch({
-          type: "ADD_MESSAGE",
-          message: newMessageReceived,
-          id: newMessageReceived.chat._id,
-        });
-        fetchMessages();
-      }
-    });
-  });
 
   const logOut = async () => {
     // localStorage.clear();
@@ -351,13 +344,8 @@ function Chat() {
                         <Box
                           key={i}
                           onClick={() => {
-                            socket.emit("join chat", v.chatId);
                             fetchMessages(v.username, v.chatId);
                             SETCHAT(v.username, v.chatId);
-//                            setChatData({
-//                              name: v.username,
-//                              id: v.chatId,
-//                            });
                              selectedChat = {
                                                     name: v.username,
                                                     id: v.chatId,
@@ -419,13 +407,13 @@ function Chat() {
               <ScrollableFeed forceScroll={"false"}>
                 <Flex flexDirection={"column"} px={"2"} pt={"4"} pb={"1"}>
                   {messageData[chatData.id] === undefined ? (
-                    <chatLoader number={15} />
+                    <ChatLoader number={15} />
                   ) : (
                     messageData[chatData.id].map((v, i) => {
                       return (
                         <Box key={i}>
                           <MessageCard
-                                     socket={socket}
+                                     socket={ws.current}
                                      num={i}
                                      isDeleted={false} // Assuming you don't have `isDeleted` in your current data
                                      message={v.messageText}
@@ -443,7 +431,7 @@ function Chat() {
                 </Flex>
               </ScrollableFeed>
             </Box>
-            <MessageBox socket={socket} />
+            <MessageBox socket={ws.current} onSendMessage={handleNewMessage}/>
           </Box>
         )}
       </Flex>

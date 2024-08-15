@@ -34,26 +34,26 @@ export default function ChatCard({ chat, select, id }) {
       borderRadius="md"
       boxShadow="sm"
     >
-      <Text fontWeight={"bold"} fontSize={"lg"} color={color}>
-        {otherUser ? `Chat with ${otherUser.userName}` : chat.chatName}
-      </Text>
+      <Flex flexDirection="row" alignItems="center" gap={"2"} mt="2">
+        {chat.userNames
+            .filter(user => user.userId !== userData.userObject.userId) // Filter out the current user
+            .map((user) => (
+                <Flex key={user.userId} flexDirection="row" alignItems="center" gap={"2"}>
+                  <Avatar
+                      size="sm"
+                      name={user.userName}
+                      src={user.profilePicture}
+                  />
+                  <Text fontWeight={"bold"} fontSize={"md"} color={color}>
+                    {user.userName}
+                  </Text>
+                </Flex>
+            ))
+        }
+      </Flex>
       <Text fontSize={"sm"} color={color}>
         Created At: {new Date(chat.createdAt).toLocaleString()}
       </Text>
-      <Flex flexDirection="row" alignItems="center" gap={"2"} mt="2">
-        {chat.userNames.map((user) => (
-          <Flex key={user.userId} flexDirection="row" alignItems="center" gap={"2"}>
-            <Avatar
-              size="sm"
-              name={user.userName}
-              src={user.profilePicture}
-            />
-            <Text fontWeight={"bold"} fontSize={"md"} color={color}>
-              {user.userName}
-            </Text>
-          </Flex>
-        ))}
-      </Flex>
     </Flex>
   );
 }

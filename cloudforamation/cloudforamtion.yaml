@@ -261,9 +261,6 @@ Resources:
             #!/bin/bash
             sudo dnf update -y
             sudo apt-get install -y nfs-common
-            sudo mkdir -p /mnt/efs
-            echo "${EFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0" | sudo tee -a /etc/fstab
-            sudo mount -a         
             sudo dnf install -y git
             sudo dnf install -y nodejs npm
             sudo npm install -g npm@latest
@@ -272,7 +269,7 @@ Resources:
             echo 'server {
               listen 80;
               listen [::]:80;
-              root /usr/share/nginx/html/my-react-app/build;
+              root /usr/share/nginx/html/my-react-app;
             
               location / {
               try_files $uri /index.html;
@@ -288,26 +285,17 @@ Resources:
             sudo npm run build
             sudo npm run export
             sudo mkdir -p /usr/share/nginx/html/my-react-app
-            sudo mkdir -p /mnt/efs/usr/share/nginx/html/my-react-app
             sudo cp -R out/* /usr/share/nginx/html/my-react-app/
-            sudo cp -R /usr/share/nginx/html/my-react-app/* /mnt/efs/usr/share/nginx/html/my-react-app/
-            sudo tee /etc/nginx/conf.d/react.conf <<EOF
-              server {
+            echo 'server {
               listen 80;
               listen [::]:80;
-            
-              root /mnt/efs/usr/share/nginx/html/my-react-app; # Ensure this points to the correct directory
-              index index.html;
-            
+              root /usr/share/nginx/html/my-react-app;
+
+              #react app
               location / {
-              try_files \$uri \$uri/ /index.html;
-            }
-            
-            # Error and access logs
-              error_log /var/log/nginx/error.log;
-              access_log /var/log/nginx/access.log;
-            }
-            EOF
+                try_files $uri /index.html;
+              }
+            }' | sudo tee /etc/nginx/conf.d/react.conf >/dev/null
             sudo nginx -t 
             sudo systemctl start nginx
             sudo systemctl enable nginx

@@ -13,7 +13,6 @@ import { TbEdit } from "react-icons/tb";
 import { MdDelete } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { bindActionCreators } from "redux";
-import { BiSave } from "react-icons/bi";
 import DeletedMessage from "./DeletedMessage";
 import { actionCreators } from "../../hooks";
 import Axios from "axios";
@@ -42,7 +41,20 @@ export default function (props) {
   const [editing, setEditing] = useState(false);
   const [isDeleted, setisDeleted] = useState(props.isDeleted);
 
-    const handleDelete = async () => {
+
+
+  const handleSendMessage = (message) => {
+    console.error('WebSocket is open. ReadyState:', ws.current.readyState);
+
+    if (props.socket && props.socket.readyState === WebSocket.OPEN && message) {
+      props. socket.send(JSON.stringify({ message: message, "chatId": chatData.id }));
+    } else {
+      console.error('WebSocket is not open. ReadyState:', ws.current.readyState);
+    }
+
+  }
+
+  const handleDelete = async () => {
   try {
     const config = {
       headers: {
@@ -70,8 +82,7 @@ export default function (props) {
         num: props.num
       };
 
-      props.socket.emit("delete message", temp);
-
+      handleSendMessage(temp);
       toast({
         title: "Message deleted!",
         status: "success",
@@ -137,7 +148,7 @@ export default function (props) {
         content: newText,
         num: props.num
       };
-      props.socket.emit("edit message", temp);
+      handleSendMessage(temp);
 
       toast({
         title: "Message updated!",
@@ -279,8 +290,8 @@ export default function (props) {
                   position={"relative"}
                   right="1"
                 >
-                  {/* {props.time} */}
-                  {new Date(updated).toLocaleString()}
+                  {/* {props.time} updated */}
+                  {new Date(props.time).toLocaleString()}
                 </Text>
                 {props.isUser && !editing ? (
                   <Box>

@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Home from "./index";
 import Chat from "./chat";
 import Otp from "./otp";
+import Reset from "./reset";
 import Register from "./register";
 import { useEffect, useState } from "react";
 
@@ -84,6 +85,7 @@ function App({ Component, pageProps }) {
               <Route path="/" element={<Home />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/otp" element={<Otp />} />
+              <Route path="/reset-password" element={<Reset />} />
               <Route path="/register" element={<Register />} />
               <Route path="*" element={<Component {...pageProps} />} />
             </Routes>

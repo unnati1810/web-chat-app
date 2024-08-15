@@ -56,7 +56,6 @@ function Navbar(props) {
       const config =  { body: { chatId } }
 
       // Emit socket event to notify other clients (if needed)
-      props.socket.emit("delete chat", { chatId });
 
       // Perform the DELETE request
       const { data } = await Axios.post(
@@ -133,7 +132,7 @@ function Navbar(props) {
         icon={<AiFillGithub />}
         onClick={() => {
           window.location.href =
-            "https://github.com/unnati1810/web-chat-app";
+            "https://github.com/daniel-jebarson/web-chat-app";
         }}
       />
       <IconButton
